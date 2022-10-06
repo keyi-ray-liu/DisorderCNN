@@ -21,6 +21,7 @@ if __name__ == '__main__':
     # For cross comparison down in plot, enter multiple 
     # For function to work properly which_cases always need to be a list
     which_cases = [1]
+    ifsort = 1
     workdir = setworkdir(which_cases)
 
     for i, case in enumerate(which_cases):
@@ -35,10 +36,11 @@ if __name__ == '__main__':
             
 
             for ipr in iprs:
-                _, _, _, _, X_test, y_test = loaddata(case, ipr)
+                _, _, _, _, X_test, y_test = loaddata(case, ipr, ifsort)
                 
+                _, path = get_path(ipr, workdir[i], ifsort)
+                model = load_model(path)
 
-                model = load_model(case, ipr)
                 y_pred = get_pred(X_test, model)
 
                 np.savetxt( workdir[i] + model.__class__.__name__ + 'testrawpred{}'.format(ipr), y_pred)

@@ -8,6 +8,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 from os.path import exists
+from class_cnn import *
 
 class MAPELoss(nn.Module):
     def __init__(self):
@@ -18,12 +19,6 @@ class MAPELoss(nn.Module):
         MAPE = torch.mean( torch.abs( inputs - targets)/targets)
         
         return MAPE
-
-class Flatten(nn.Module):
-    """A custom layer that views an input as 1D."""
-    
-    def forward(self, input):
-        return input.view(input.size(0), -1)
 
 
 def setworkdir(which):
@@ -47,18 +42,30 @@ def checkerrfile(path):
 def checktestfile(path):
     return exists( path + 'testavg')
 
-def load_model(case, ipr):
-    cwd = os.getcwd() + '/batch{}cnn/'.format(case)
+def select_model(ipr):
 
-    if ipr == 'all':
-        tag = 'MAPECNN'
+    if ipr != 'all':
+        #model = MSEdoubleCNN()
+        model = MSELarge()
+
     else:
-        tag = 'MSEdoubleCNN'
+        model = MAPECNN()
 
-    model = torch.load(cwd + '{}DisReg{}.pt'.format(tag, ipr))
     return model
 
-def loaddata(key, idx):
+def get_path(ipr, workdir, ifsort):
+
+    model_temp = select_model(ipr)
+    name = name = model_temp.__class__.__name__
+    path = workdir + 'sort{}{}DisReg{}.pt'.format(ifsort, name, ipr)
+
+    return model_temp, path
+
+def load_model(path):
+    model = torch.load(path)
+    return model
+
+def loaddata(key, idx, ifsort):
 
     cwd = os.getcwd()
     key = str(key)
@@ -66,8 +73,20 @@ def loaddata(key, idx):
 
     disx = np.loadtxt(dir + 'disx')
     disy = np.loadtxt(dir + 'disy')
-    ipr = np.loadtxt(dir + 'ipr')
 
+    if not ifsort:
+        ipr = np.loadtxt(dir + 'ipr')
+
+    else:
+
+        if os.path.exists(dir + 'iprsort'):
+            ipr = np.loadtxt( dir + 'iprsort')
+
+        else:
+            ipr = np.loadtxt(dir + 'ipr')
+            ipr = np.sort(ipr)
+            np.savetxt('iprsort', ipr)
+            
     #for the moment we assume a square lattice
     # get dim
     dim = int(np.rint(np.sqrt( disx.shape[-1])))
@@ -103,7 +122,7 @@ def batchify_data(x_data, y_data, batch_size):
         })
     return batches
 
-def train_model(train_data, dev_data, model, ipr, workdir, lr=0.03, momentum=0.9, weight_decay = 0.02, n_epochs=30):
+def train_model(train_data, dev_data, model, ipr, path, lr=0.03, momentum=0.9, weight_decay = 0.02, n_epochs=30):
     """Train a model for N epochs given data and hyper-params."""
    
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay = weight_decay)
@@ -112,7 +131,7 @@ def train_model(train_data, dev_data, model, ipr, workdir, lr=0.03, momentum=0.9
     validerr = np.zeros(n_epochs)
 
     print("-------------- Training: IPR = {} \n".format(ipr))
-    name = model.__class__.__name__
+    
     for i, epoch in enumerate(range(1, n_epochs + 1)):
         print("-------------\nEpoch {}:\n".format(epoch))
 
@@ -127,7 +146,7 @@ def train_model(train_data, dev_data, model, ipr, workdir, lr=0.03, momentum=0.9
         print('Valid | avg percent error : {:.6f} '.format(err))
 
         # Save model
-        torch.save(model, workdir + '{}DisReg{}LR{}decay{}.pt'.format(name, ipr, lr, weight_decay))
+        torch.save(model, path)
 
     return trainerr, validerr
     

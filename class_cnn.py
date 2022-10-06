@@ -1,6 +1,12 @@
 import torch
 import torch.nn as nn
-from cnn_utils import *
+
+
+class Flatten(nn.Module):
+    """A custom layer that views an input as 1D."""
+    
+    def forward(self, input):
+        return input.view(input.size(0), -1)
 
 class MSEdoubleCNN(nn.Module):
 
