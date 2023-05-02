@@ -16,7 +16,7 @@ class MAPELoss(nn.Module):
  
     def forward(self, inputs, targets):        
         
-        MAPE = torch.mean( torch.abs( inputs - targets)/targets)
+        MAPE = torch.mean(torch.abs ( ( inputs - targets)/targets))
         
         return MAPE
 
@@ -42,22 +42,22 @@ def checkerrfile(path):
 def checktestfile(path):
     return exists( path + 'testavg')
 
-def select_model(ipr):
+def select_model(key):
 
-    if ipr != 'all':
-        #model = MSEdoubleCNN()
-        model = MSELarge()
+    if key == 'gpi':
+        model = GPICNN()
 
     else:
-        model = MAPECNN()
+        print('key not defined')
+        exit()
 
     return model
 
-def get_path(ipr, workdir, ifsort):
+def get_path(key, workdir, ifsort):
 
-    model_temp = select_model(ipr)
+    model_temp = select_model(key)
     name = name = model_temp.__class__.__name__
-    path = workdir + 'sort{}{}DisReg{}.pt'.format(ifsort, name, ipr)
+    path = workdir + 'sort{}{}DisReg.pt'.format(ifsort, name)
 
     return model_temp, path
 
@@ -65,28 +65,29 @@ def load_model(path):
     model = torch.load(path)
     return model
 
-def loaddata(key, idx, ifsort):
+def loaddata(case, key, ifsort):
 
     cwd = os.getcwd()
-    key = str(key)
-    dir = cwd + '/' +  'batch' + key + '/'
+    dir = cwd + '/' +  'batch{}/'.format(case)
 
     disx = np.loadtxt(dir + 'disx')
     disy = np.loadtxt(dir + 'disy')
-
+    
     if not ifsort:
-        ipr = np.loadtxt(dir + 'ipr')
+        arr = np.loadtxt(dir + key)
 
     else:
 
-        if os.path.exists(dir + 'iprsort'):
-            ipr = np.loadtxt( dir + 'iprsort')
+        if os.path.exists(dir + key + 'sort'):
+            arr = np.loadtxt( dir + key + 'sort')
 
         else:
-            ipr = np.loadtxt(dir + 'ipr')
-            ipr = np.sort(ipr)
-            np.savetxt('iprsort', ipr)
+            arr = np.loadtxt(dir + key)
+            arr = np.sort(arr)
+            np.savetxt(dir + key + 'sort', arr)
             
+    if key == 'gpi':
+        arr = np.log(arr)
     #for the moment we assume a square lattice
     # get dim
     dim = int(np.rint(np.sqrt( disx.shape[-1])))
@@ -99,10 +100,8 @@ def loaddata(key, idx, ifsort):
     dis[:, 1, :, :] = disy
 
     # currently only train for ipr of GS 
-    if idx != 'all':
-        ipr = ipr[:, idx].reshape((ipr.shape[0], 1))
 
-    X_train, X_test, y_train, y_test = train_test_split(dis, ipr, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(dis, arr, test_size=0.2, random_state=42)
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.4, random_state=55)
 
 
@@ -122,7 +121,7 @@ def batchify_data(x_data, y_data, batch_size):
         })
     return batches
 
-def train_model(train_data, dev_data, model, ipr, path, lr=0.03, momentum=0.9, weight_decay = 0.02, n_epochs=30):
+def train_model(train_data, dev_data, model, key, path, lr=0.03, momentum=0.9, weight_decay = 0.02, n_epochs=30):
     """Train a model for N epochs given data and hyper-params."""
    
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay = weight_decay)
@@ -130,18 +129,18 @@ def train_model(train_data, dev_data, model, ipr, path, lr=0.03, momentum=0.9, w
     trainerr = np.zeros(n_epochs)
     validerr = np.zeros(n_epochs)
 
-    print("-------------- Training: IPR = {} \n".format(ipr))
+    print("-------------- Training: METRIC = {} \n".format(key))
     
     for i, epoch in enumerate(range(1, n_epochs + 1)):
         print("-------------\nEpoch {}:\n".format(epoch))
 
         # Run **training***
-        err = run_epoch(train_data, model.train(), optimizer, ipr)
+        err = run_epoch(train_data, model.train(), optimizer)
         trainerr[i] = err
         print('Train | avg percent error : {:.6f} '.format(err))
 
         # Run **validation**
-        err = run_epoch(dev_data, model.eval(), optimizer, ipr)
+        err = run_epoch(dev_data, model.eval(), optimizer)
         validerr[i] = err
         print('Valid | avg percent error : {:.6f} '.format(err))
 
@@ -153,9 +152,9 @@ def train_model(train_data, dev_data, model, ipr, path, lr=0.03, momentum=0.9, w
 def cal_error(out, y):
     out = out.detach().numpy()
     y = y.detach().numpy()
-    return np.mean( np.abs(out - y)/ y)
+    return np.mean( np.abs ((out - y)/ y))
 
-def run_epoch(data, model, optimizer, ipr):
+def run_epoch(data, model, optimizer):
     """Train model for one pass of train data, and return loss, acccuracy"""
 
 
@@ -163,11 +162,9 @@ def run_epoch(data, model, optimizer, ipr):
     is_training = model.training
     percenterror = []
 
-    if ipr == 'all':
-        loss_function = MAPELoss()
 
-    else:
-        loss_function = nn.MSELoss()
+    loss_function = MAPELoss()
+
     # Iterate through batches
 
     for batch in tqdm(data):
@@ -277,27 +274,32 @@ def plotanalysis(workdirs):
 
     fig.savefig('FinalERR.pdf')
 
-def plotcomp(workdir):
+def plotcomp(workdir, ifsort, both):
 
     fig, ax = plt.subplots(2, 1, figsize = (8, 10))
 
-    ed = np.loadtxt(workdir + 'testipr')
+    ed = np.loadtxt(workdir + 'sort{}testipr'.format(ifsort))
 
     files = []
 
-    models = ('MAPE', 'MSEdouble')
-    metrics = ('pred', 'absavg', 'avg')
+    if both:
+        models = ['MAPE', 'MSEdouble']
+
+    else:
+        models = ['MAPE']
+
+    metrics = ['pred', 'absavg', 'avg']
     for metric in metrics:
         for model in models:
 
-            file = np.loadtxt(workdir + '{}CNNtest{}'.format(model, metric))
+            file = np.loadtxt(workdir + '{}CNNsort{}test{}'.format(model, ifsort, metric))
             files.append(file)
 
     # clean
 
     def select(k):
 
-        return 0 if k < 2 else 1
+        return 0 if k < len(models) else 1
 
     cl = ['r','g']
     l = ['-', '-', '--']
@@ -324,10 +326,10 @@ def plotcomp(workdir):
 
     ax[0].plot( ref, ed, label='Actual') 
 
-    ax[0].set_xlabel('Eigenstate')
-    ax[0].set_ylabel('Avg IPR')
+    ax[0].set_xlabel('Eigenstate (Sort = {}'.format(ifsort))
+    ax[0].set_ylabel('Avg IPR ')
     ax[0].legend()
-    ax[0].set_title('Average IPR (across 3000 test cases)')
+    ax[0].set_title('Average IPR (across 3000 test cases) Sort = {}'.format(ifsort))
 
     ax[1].legend()
     ax[1].set_xlabel('Eigenstate')
@@ -336,44 +338,48 @@ def plotcomp(workdir):
     fig.tight_layout()
     plt.show()
 
-def hist(workdir):
+def hist(workdir, ifsort, both):
 
+
+
+    rawed = np.loadtxt(workdir + 'sort{}rawtestipr'.format(ifsort))
+    rawMAPE = np.loadtxt(workdir + 'MAPECNNsort{}testrawpredall'.format(ifsort))
     
+    skip = set()
+    ipr = 100
 
-    rawed = np.loadtxt(workdir + 'rawtestipr')
-    rawMAPE = np.loadtxt(workdir + 'MAPECNNtestrawpredall')
-    
-    ipr = 100 
-    startstack = 0
-    skip = []
-    for i in range(ipr):
+    if both:
 
-        curraw = np.loadtxt( workdir + 'MSEdoubleCNNtestrawpred{}'.format(i))
-        
-        if curraw[0] < 0.01:
-            skip += [i]
-        else:
+        startstack = 0
+        for i in range(ipr):
 
-            curraw = curraw.reshape((curraw.shape[0], 1))
-            if startstack:
-                rawMSE = np.hstack( (rawMSE, curraw) )
-
+            curraw = np.loadtxt( workdir + 'MSEdoubleCNNsort{}testrawpred{}'.format(ifsort, i))
+            
+            if curraw[0] < 0.001:
+                skip.add(i)
             else:
-                rawMSE = curraw
-                startstack = 1
 
-    rawed = np.delete(rawed, skip, 1)
-    rawMAPE = np.delete(rawMAPE, skip, 1)
+                curraw = curraw.reshape((curraw.shape[0], 1))
+                if startstack:
+                    rawMSE = np.hstack( (rawMSE, curraw) )
+
+                else:
+                    rawMSE = curraw
+                    startstack = 1
+
+        rawMSEdiff = (rawMSE - rawed)
+        rawMSEper = rawMSEdiff / rawed
+
+    rawed = np.delete(rawed, list(skip), 1)
+    rawMAPE = np.delete(rawMAPE, list(skip), 1)
 
     #print(rawed.shape, rawMAPE.shape, rawMSE.shape)
 
     rawMAPEdiff = (rawMAPE - rawed)
-    rawMSEdiff = (rawMSE - rawed)
-
     rawMAPEper = rawMAPEdiff / rawed
-    rawMSEper = rawMSEdiff / rawed
 
-    pdf = matplotlib.backends.backend_pdf.PdfPages( workdir + 'iprs.pdf' )
+
+    pdf = matplotlib.backends.backend_pdf.PdfPages( workdir + 'iprssort{}.pdf'.format(ifsort) )
     cnt = 0
 
     for i in range(ipr):
@@ -383,19 +389,22 @@ def hist(workdir):
             fig, ax = plt.subplots(3, 1, figsize=(8, 12))
 
             MAPEdiff = rawMAPEdiff[:, cnt]
-            MSEdiff = rawMSEdiff[:, cnt]
             MAPEper = rawMAPEper[:, cnt]
-            MSEper = rawMSEper[:, cnt]
+
+            if both:
+                MSEdiff = rawMSEdiff[:, cnt]
+                MSEper = rawMSEper[:, cnt]
+                ax[0].hist(MSEdiff.flatten(),200, (-0.8, 0.8), alpha=0.5, label='MSE')
+                ax[1].hist(MSEper.flatten(),200, (-0.8, 0.8), alpha=0.5, label='MSE')
+            
 
             ax[0].hist(MAPEdiff.flatten(), 200, (-0.8, 0.8), alpha=0.5, label='MAPE')
-            ax[0].hist(MSEdiff.flatten(),200, (-0.8, 0.8), alpha=0.5, label='MSE')
-
             ax[0].set_xlabel('IPR: (Prediction - Actual)')
             ax[0].legend()
             ax[0].set_ylabel('Counts')
 
             ax[1].hist(MAPEper.flatten(), 200, (-0.8, 0.8), alpha=0.5, label='MAPE')
-            ax[1].hist(MSEper.flatten(),200, (-0.8, 0.8), alpha=0.5, label='MSE')
+            
             ax[1].set_xlabel('IPR: (Prediction - Actual) / Actual')
             ax[0].set_ylabel('Counts')
 

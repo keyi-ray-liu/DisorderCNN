@@ -34,16 +34,18 @@ if __name__ == '__main__':
             errabsavgstds = []
             preds = []
             
+            prefix = workdir[i] + model.__class__.__name__ + 'sort{}'.format(ifsort)
 
             for ipr in iprs:
                 _, _, _, _, X_test, y_test = loaddata(case, ipr, ifsort)
                 
+                # path of the model
                 _, path = get_path(ipr, workdir[i], ifsort)
                 model = load_model(path)
 
                 y_pred = get_pred(X_test, model)
 
-                np.savetxt( workdir[i] + model.__class__.__name__ + 'testrawpred{}'.format(ipr), y_pred)
+                np.savetxt( prefix + 'testrawpred{}'.format(ipr), y_pred)
                 avg, errabsavg, erravg, errabsavgstd, erravgstd = get_metric(y_pred, y_test)
 
                 #print(avg, std)
@@ -53,12 +55,13 @@ if __name__ == '__main__':
                 errabsavgstds.append(errabsavgstd)
                 erravgstds.append(erravgstd)
 
-            np.savetxt( workdir[i] + model.__class__.__name__ + 'testpred', np.array(preds))
-            np.savetxt( workdir[i] + model.__class__.__name__ + 'testabsavg', np.array(errabsavgs))
-            np.savetxt( workdir[i] + model.__class__.__name__ + 'testavg', np.array(erravgs))
-            np.savetxt( workdir[i] + model.__class__.__name__ + 'testabsavgstd', np.array(errabsavgstds))
-            np.savetxt( workdir[i] + model.__class__.__name__ + 'testavgstd', np.array(erravgstds))
+        
+            np.savetxt( prefix + 'testpred', np.array(preds))
+            np.savetxt( prefix + 'testabsavg', np.array(errabsavgs))
+            np.savetxt( prefix + 'testavg', np.array(erravgs))
+            np.savetxt( prefix + 'testabsavgstd', np.array(errabsavgstds))
+            np.savetxt( prefix + 'testavgstd', np.array(erravgstds))
             
             if all:
-                np.savetxt( workdir[i] + 'rawtestipr', y_test)
-                np.savetxt( workdir[i] + 'testipr', np.mean(y_test, axis=0))
+                np.savetxt( workdir[i] + 'sort{}rawtestipr'.format(ifsort), y_test)
+                np.savetxt( workdir[i] + 'sort{}testipr'.format(ifsort), np.mean(y_test, axis=0))
