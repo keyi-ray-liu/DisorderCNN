@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from cnn_utils import *
 from class_cnn import *
+from metric_cnn import *
 
 
 if __name__ == '__main__':

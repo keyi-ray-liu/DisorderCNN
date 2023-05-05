@@ -21,91 +21,6 @@ class MAPELoss(nn.Module):
         return MAPE
 
 
-def setworkdir(which):
-
-    ret = []
-
-    for num in which:
-        cwd = os.getcwd() + '/batch{}cnn/'.format(str(num))
-
-        if not exists(cwd):
-            os.mkdir(cwd)
-
-        ret += [cwd]
-
-    return ret
-
-
-def checkerrfile(path):
-    return exists( path  + 'trainerrs')
-
-def checktestfile(path):
-    return exists( path + 'testavg')
-
-def select_model(key):
-
-    if key == 'gpi':
-        model = GPICNN()
-
-    else:
-        print('key not defined')
-        exit()
-
-    return model
-
-def get_path(key, workdir, ifsort):
-
-    model_temp = select_model(key)
-    name = name = model_temp.__class__.__name__
-    path = workdir + 'sort{}{}DisReg.pt'.format(ifsort, name)
-
-    return model_temp, path
-
-def load_model(path):
-    model = torch.load(path)
-    return model
-
-def loaddata(case, key, ifsort):
-
-    cwd = os.getcwd()
-    dir = cwd + '/' +  'batch{}/'.format(case)
-
-    disx = np.loadtxt(dir + 'disx')
-    disy = np.loadtxt(dir + 'disy')
-    
-    if not ifsort:
-        arr = np.loadtxt(dir + key)
-
-    else:
-
-        if os.path.exists(dir + key + 'sort'):
-            arr = np.loadtxt( dir + key + 'sort')
-
-        else:
-            arr = np.loadtxt(dir + key)
-            arr = np.sort(arr)
-            np.savetxt(dir + key + 'sort', arr)
-            
-    if key == 'gpi':
-        arr = np.log(arr)
-    #for the moment we assume a square lattice
-    # get dim
-    dim = int(np.rint(np.sqrt( disx.shape[-1])))
-
-    disx = disx.reshape( ( disx.shape[0], dim, dim))
-    disy = disy.reshape ( (disy.shape[0], dim, dim))
-
-    dis = np.zeros( (disx.shape[0], 2, dim, dim))
-    dis[:, 0, :, :] = disx
-    dis[:, 1, :, :] = disy
-
-    # currently only train for ipr of GS 
-
-    X_train, X_test, y_train, y_test = train_test_split(dis, arr, test_size=0.2, random_state=42)
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.4, random_state=55)
-
-
-    return X_train, y_train, X_val, y_val, X_test, y_test
 
 def batchify_data(x_data, y_data, batch_size):
     """Takes a set of data points and labels and groups them into batches."""
@@ -121,15 +36,18 @@ def batchify_data(x_data, y_data, batch_size):
         })
     return batches
 
-def train_model(train_data, dev_data, model, key, path, lr=0.03, momentum=0.9, weight_decay = 0.02, n_epochs=30):
+def train_model(train_data, dev_data, label, lr=0.03, momentum=0.9, weight_decay = 0.02, n_epochs=30):
     """Train a model for N epochs given data and hyper-params."""
-   
+    
+    model = label.model
+    name = label.name
+
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay = weight_decay)
 
     trainerr = np.zeros(n_epochs)
     validerr = np.zeros(n_epochs)
 
-    print("-------------- Training: METRIC = {} \n".format(key))
+    print("-------------- Training: METRIC = {} \n".format(name))
     
     for i, epoch in enumerate(range(1, n_epochs + 1)):
         print("-------------\nEpoch {}:\n".format(epoch))
@@ -145,9 +63,9 @@ def train_model(train_data, dev_data, model, key, path, lr=0.03, momentum=0.9, w
         print('Valid | avg percent error : {:.6f} '.format(err))
 
         # Save model
-        torch.save(model, path)
+        
 
-    return trainerr, validerr
+    return trainerr, validerr, model
     
 def cal_error(out, y):
     out = out.detach().numpy()
