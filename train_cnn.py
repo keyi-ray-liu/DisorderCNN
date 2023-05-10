@@ -20,9 +20,8 @@ if __name__ == '__main__':
     # select which set of disorder parameters we want to look at. 
     # For cross comparison down in plot, enter multiple 
     # For function to work properly which_cases always need to be a list
-    which_cases = [1]
-    ifsort = 1
-    label = Gpi(if_sort = ifsort)
+    which_cases = [0.05]
+    label = Gpi(if_sort = 1)
 
 
     for i, case in enumerate(which_cases):
