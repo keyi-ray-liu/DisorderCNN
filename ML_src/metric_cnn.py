@@ -92,7 +92,7 @@ class Gpi(Label):
         dis[:, 0, :] = disx
         dis[:, 1, :] = disy
 
-        # currently only train for ipr of GS 
+        # currently only train for ipr of gs_subtracted 
 
         X_train, X_test, y_train, y_test = train_test_split(dis, arr, test_size=0.2, random_state=42)
         X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.4, random_state=55)
@@ -108,9 +108,10 @@ class Gpi(Label):
 
 class Energy(Label):
 
-    def __init__(self, name='energy', cutoff=30):
+    def __init__(self, name='energy', cutoff=30, gs_subtracted=1):
         self.name = name
         self.cutoff = cutoff
+        self.gs_subtracted = gs_subtracted
 
     def set_data_dir(self, case_id): 
 
@@ -125,28 +126,31 @@ class Energy(Label):
         dir = self.data_dir
         key = self.name
         cutoff = self.cutoff
+        gs_subtracted = self.gs_subtracted
 
         disx = np.loadtxt(dir + 'disx')
         disy = np.loadtxt(dir + 'disy')
         
-        if os.path.exists(dir + key + 'cutoff{}'.format(cutoff)):
-            arr = np.loadtxt( dir + key + 'cutoff{}'.format(cutoff))
+        out = dir + key + 'cutoff{}gssubtracted{}'.format(cutoff, gs_subtracted)
+
+        if os.path.exists(out):
+            arr = np.loadtxt( out)
 
         else:
             arr = np.loadtxt(dir + key)
             arr = arr[:, :cutoff]
 
+            if gs_subtracted:
+                arr = arr - np.reshape( np.repeat(arr[:, 0], arr.shape[-1]), arr.shape)
+                arr = arr[:, 1:]
 
-            np.savetxt(dir + key + 'cutoff{}'.format(cutoff), arr)
+            np.savetxt(out, arr)
         
-        arr = arr - np.reshape( np.repeat(arr[:, 0], arr.shape[-1]), arr.shape)
-
-        print(arr)
         dis = np.zeros( (disx.shape[0], 2, disx.shape[1]))
         dis[:, 0, :] = disx
         dis[:, 1, :] = disy
 
-        # currently only train for ipr of GS 
+        # currently only train for ipr of gs_subtracted 
 
         X_train, X_test, y_train, y_test = train_test_split(dis, arr, test_size=0.2, random_state=42)
         X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.4, random_state=55)
@@ -154,5 +158,5 @@ class Energy(Label):
         return X_train, y_train, X_val, y_val, X_test, y_test
     
     def init_model(self):
-        self.model = Energy1DCNN(self.cutoff)
+        self.model = Energy1DCNN(self.cutoff - self.gs_subtracted)
 
