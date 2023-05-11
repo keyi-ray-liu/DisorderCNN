@@ -14,8 +14,14 @@ class Label():
     def set_data_dir(self): 
         return NotImplementedError("label must define their data dir setting method")
     
-    def set_model_dir(self):
-        return NotImplementedError("label must define their model name setting method")
+    def set_model_dir(self, description=''):
+
+        cwd = os.getcwd() + '/models/'
+        if not os.path.exists(cwd):
+            os.mkdir(cwd)
+        
+        class_name = self.model.__class__.__name__
+        self.model_dir = cwd + class_name + description
         
     def load_data(self):
         return NotImplementedError("label must define their data loading method")
@@ -48,7 +54,7 @@ class Gpi(Label):
 
     def set_data_dir(self, case_id): 
 
-        cwd = os.getcwd() + '/batch{}cnn/'.format(str(case_id))
+        cwd = os.getcwd() + '/batch{}/'.format(str(case_id))
         if not os.path.exists(cwd):
             os.mkdir(cwd)
         
@@ -98,14 +104,6 @@ class Gpi(Label):
         self.model = GPICNN()
 
 
-    def set_model_dir(self, description=''):
-
-        cwd = os.getcwd() + '/models/'
-        if not os.path.exists(cwd):
-            os.mkdir(cwd)
-        
-        class_name = self.model.__class__.__name__
-        self.model_dir = cwd + class_name + description
         
 
 class Energy(Label):
@@ -116,7 +114,7 @@ class Energy(Label):
 
     def set_data_dir(self, case_id): 
 
-        cwd = os.getcwd() + '/batch{}cnn/{}'.format(str(case_id))
+        cwd = os.getcwd() + '/batch{}/'.format(str(case_id))
         if not os.path.exists(cwd):
             os.mkdir(cwd)
         
@@ -137,9 +135,13 @@ class Energy(Label):
         else:
             arr = np.loadtxt(dir + key)
             arr = arr[:, :cutoff]
-            np.savetxt(dir + key + 'cutoff{}'.format(cutoff), arr)
-                
 
+
+            np.savetxt(dir + key + 'cutoff{}'.format(cutoff), arr)
+        
+        arr = arr - np.reshape( np.repeat(arr[:, 0], arr.shape[-1]), arr.shape)
+
+        print(arr)
         dis = np.zeros( (disx.shape[0], 2, disx.shape[1]))
         dis[:, 0, :] = disx
         dis[:, 1, :] = disy
@@ -152,4 +154,5 @@ class Energy(Label):
         return X_train, y_train, X_val, y_val, X_test, y_test
     
     def init_model(self):
-        self.model = EnergyCNN(self.cutoff)
+        self.model = Energy1DCNN(self.cutoff)
+

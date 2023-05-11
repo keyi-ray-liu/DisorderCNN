@@ -80,15 +80,16 @@ def run_epoch(data, model, optimizer):
     is_training = model.training
     percenterror = []
 
-
     loss_function = MAPELoss()
 
     # Iterate through batches
 
     for batch in tqdm(data):
+
         # Grab x and y
         x, y = batch['x'], batch['y']
 
+        print(x.shape)
         # get prediction
         out = model(x)
 

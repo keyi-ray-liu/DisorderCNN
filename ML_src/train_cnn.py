@@ -21,7 +21,8 @@ if __name__ == '__main__':
     # For cross comparison down in plot, enter multiple 
     # For function to work properly which_cases always need to be a list
     which_cases = [0.05]
-    label = Gpi(if_sort = 1)
+    #label = Gpi(if_sort = 1)
+    label = Energy()
 
 
     for i, case in enumerate(which_cases):
@@ -36,11 +37,10 @@ if __name__ == '__main__':
         Val = batchify_data(X_val, y_val, batch_size)
         #Test = batchify_data(X_test, y_test, batch_size)
 
-        
         trainerr, validerr, model = train_model(Train, Val, label, lr=lr, \
             weight_decay = decay, momentum = momentum, n_epochs=n_epochs)
 
-        label.set_model_dir()
+        label.set_model_dir(description=case)
         label.save_model(model)
         label.export_model()
 

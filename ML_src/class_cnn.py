@@ -44,9 +44,9 @@ class GPICNN(nn.Module):
         return gpi
 
 
-class EnergyCNN(nn.Module):
+class Energy2DCNN(nn.Module):
     def __init__(self, outputdim):
-        super(GPICNN, self).__init__()
+        super(Energy2DCNN, self).__init__()
         # TODO initialize model layers here
         self.cnn1 = nn.Conv2d(2, 1024, (2, 2))
         self.relu = nn.ReLU()
@@ -72,11 +72,47 @@ class EnergyCNN(nn.Module):
         x = self.out(x)
         x = self.relu(x)
 
-        gpi = x
+        energy = x
         # ipr = x[:, 10:]
 
 
-        return gpi
+        return energy
+    
+class Energy1DCNN(nn.Module):
+    def __init__(self, outputdim):
+        super(Energy1DCNN, self).__init__()
+        # TODO initialize model layers here
+        self.cnn1 = nn.Conv1d(2, 512, kernel_size = 3, padding=1)
+        self.cnn2 = nn.Conv1d(512, 512, kernel_size = 3, padding = 1)
+        self.relu = nn.ReLU()
+        self.flatten = Flatten()
+        self.pool = nn.MaxPool1d(2)
+        self.dropout = nn.Dropout(p=0.5)
+        self.hidden = nn.Linear(512 * 3 , 1024)
+        self.hidden2 = nn.Linear( 1024, 1024)
+        self.out = nn.Linear(1024, outputdim)
+
+    def forward(self, x):
+
+        x = self.cnn1(x) # size 12
+        x = self.relu(x)
+        x = self.pool(x) # size 6
+        x = self.cnn2(x) # size 6
+        x = self.pool(x) # size 3
+        x = self.flatten(x)
+        x = self.hidden(x)
+        x = self.relu(x)
+        x = self.hidden2(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.out(x)
+        x = self.relu(x)
+
+        energy = x
+        # ipr = x[:, 10:]
+
+
+        return energy
 
 class MSEdoubleCNN(nn.Module):
 
