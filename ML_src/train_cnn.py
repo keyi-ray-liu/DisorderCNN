@@ -11,7 +11,7 @@ if __name__ == '__main__':
 
 
     batch_size = 100
-    n_epochs = 30
+    n_epochs = 1
 
     lr = 0.03
     decay = 0.02
@@ -22,7 +22,7 @@ if __name__ == '__main__':
     # For function to work properly which_cases always need to be a list
     which_cases = [0.05]
     #label = Gpi(if_sort = 1)
-    label = Energy()
+    label = EnergyGap()
 
 
     for i, case in enumerate(which_cases):
@@ -40,9 +40,9 @@ if __name__ == '__main__':
         trainerr, validerr, model = train_model(Train, Val, label, lr=lr, \
             weight_decay = decay, momentum = momentum, n_epochs=n_epochs)
 
-        label.set_model_dir(description=case)
+        label.set_model_dir(description='dis{}'.format(case))
         label.save_model(model)
         label.export_model()
 
-        np.savetxt(label.workdirs + 'trainerrs', trainerr)
-        np.savetxt(label.workdirs + 'validerrs', validerr)
+        np.savetxt(label.data_dir + 'trainerrs', trainerr)
+        np.savetxt(label.data_dir + 'validerrs', validerr)

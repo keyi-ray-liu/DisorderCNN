@@ -5,7 +5,7 @@ from class_cnn import *
 
 class Label():
 
-    def __init__(self, name):
+    def __init__(self, name, description=''):
         self.name = name
         self.model_dir = ''
         self.data_dir = ''
@@ -20,8 +20,9 @@ class Label():
         if not os.path.exists(cwd):
             os.mkdir(cwd)
         
-        class_name = self.model.__class__.__name__
-        self.model_dir = cwd + class_name + description
+        label_name = self.__class__.__name__
+        model_name = self.model.__class__.__name__
+        self.model_dir = cwd + model_name + label_name + str(description)
         
     def load_data(self):
         return NotImplementedError("label must define their data loading method")
@@ -106,7 +107,7 @@ class Gpi(Label):
 
         
 
-class Energy(Label):
+class EnergyGap(Label):
 
     def __init__(self, name='energy', cutoff=30, gs_subtracted=1):
         self.name = name
