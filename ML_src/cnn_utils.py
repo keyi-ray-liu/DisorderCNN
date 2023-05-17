@@ -4,21 +4,12 @@ import os
 import torch.nn as nn
 import torch
 from sklearn.model_selection import train_test_split
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 from os.path import exists
 from class_cnn import *
-
-class MAPELoss(nn.Module):
-    def __init__(self):
-        super(MAPELoss, self).__init__()
- 
-    def forward(self, inputs, targets):        
-        
-        MAPE = torch.mean(torch.abs ( ( inputs - targets)/targets))
-        
-        return MAPE
+import sys
+from metric_cnn import *
 
 
 
@@ -36,57 +27,16 @@ def batchify_data(x_data, y_data, batch_size):
         })
     return batches
 
+def select_label():
 
+    num = int(sys.argv[1])
+    labels = {
+        0: EnergyGSGap(),
+        1: EnergyAllGap(),
+        2: EnergyNearestNGSGap()
+    }
+    return labels[num]
     
-def cal_error(out, y):
-    out = out.detach().numpy()
-    y = y.detach().numpy()
-    return np.mean( np.abs ((out - y)/ y))
-
-def run_epoch(data, model, optimizer):
-    """Train model for one pass of train data, and return loss, acccuracy"""
-
-
-    # training label
-    is_training = model.training
-    percenterror = []
-
-    loss_function = MAPELoss()
-
-    # Iterate through batches
-
-    for batch in tqdm(data):
-
-        # Grab x and y
-        x, y = batch['x'], batch['y']
-
-        print(x.shape)
-        # get prediction
-        out = model(x)
-
-        #print('out:', out, 'y:', y)
-
-        percenterror.append( cal_error(out, y))
-        # If training, do an update.
-        if is_training:
-            optimizer.zero_grad()
-            joint_loss = loss_function(out, y)
-            joint_loss.backward()
-            optimizer.step()
-
-    # Calculate epoch level scores
-    avg_percenterror = np.mean(percenterror)
-    return avg_percenterror
-
-
-def get_pred(X, model):
-
-    model.eval()
-
-    X = torch.tensor(X, dtype=torch.float32)
-    pred = model(X).detach().numpy()
-
-    return pred
 
 def get_metric(pred, y):
     

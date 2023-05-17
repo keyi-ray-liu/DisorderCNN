@@ -3,8 +3,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from cnn_utils import *
-from metric_cnn import *
-
 
 
 if __name__ == '__main__':
@@ -22,7 +20,8 @@ if __name__ == '__main__':
     # For function to work properly which_cases always need to be a list
     which_cases = [0.05]
     #label = Gpi(if_sort = 1)
-    label = EnergyAllGap()
+
+    label = select_label()
 
 
     for i, case in enumerate(which_cases):

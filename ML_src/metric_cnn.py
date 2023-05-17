@@ -2,8 +2,8 @@ import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 from class_cnn import *
-from cnn_utils import *
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 class Label():
 
@@ -11,6 +11,7 @@ class Label():
         self.name = name
         self.model_dir = ''
         self.data_dir = ''
+        self.plot_dir = ''
         self.model = None
 
     def set_data_dir(self): 
@@ -25,6 +26,16 @@ class Label():
         label_name = self.__class__.__name__
         model_name = self.model.__class__.__name__
         self.model_dir = cwd + model_name + label_name + str(description)
+
+    def set_plot_dir(self, description=''):
+
+        cwd = os.getcwd() + '/plots/'
+        if not os.path.exists(cwd):
+            os.mkdir(cwd)
+        
+        label_name = self.__class__.__name__
+        model_name = self.model.__class__.__name__
+        self.plot_dir = cwd + model_name + label_name + str(description) + ".png"
         
     def load_data(self):
         return NotImplementedError("label must define their data loading method")
@@ -40,6 +51,9 @@ class Label():
     
     def init_model(self):
         return NotImplementedError("label must define their model init method")
+
+    def get_pred(self):
+        return NotImplementedError("label must define their prediction method")
 
     def import_model(self):
 
@@ -123,13 +137,7 @@ class Gpi(Label):
         self.model = GPICNN()
 
 
-
-class Energy(Label):
-
-    def __init__(self, name='energy', cutoff=30):
-        self.name = name
-        self.cutoff = cutoff
-
+class CNNBase(Label):
 
     def process_x(self):
 
@@ -143,6 +151,152 @@ class Energy(Label):
         dis[:, 1, :] = disy
 
         return dis
+    
+class NearestNeighborBase(Label):
+
+    def process_x(self):
+
+        dir = self.data_dir
+
+        disx = np.loadtxt(dir + 'disx')
+        disy = np.loadtxt(dir + 'disy')
+        
+        dis = np.sqrt(( disx[:, 1:] + 1 - disx[:, :-1]) **2 + (disy[:, 1:] - disy[:, :-1]) ** 2 )
+
+        return dis
+
+class GSGapBase(Label):
+
+    def process_y(self):
+
+        dir = self.data_dir
+        key = self.name
+        cutoff = self.cutoff
+
+        out = dir + key + 'cutoff{}gsgap'.format(cutoff)
+
+        if os.path.exists(out):
+            arr = np.loadtxt( out)
+
+        else:
+            arr = np.loadtxt(dir + key)
+            arr = arr[:, :cutoff]
+            arr = arr - np.reshape( np.repeat(arr[:, 0], arr.shape[-1]), arr.shape)
+            arr = arr[:, 1:]
+
+            np.savetxt(out, arr)
+
+        return arr
+    
+class AllGapBase(Label):
+
+    def process_y(self):
+
+        dir = self.data_dir
+        key = self.name
+        cutoff = self.cutoff
+
+        out = dir + key + 'cutoff{}allgap'.format(cutoff)
+
+        if os.path.exists(out):
+            arr = np.loadtxt( out)
+
+        else:
+            arr = np.loadtxt(dir + key)
+            arr = arr[:, :cutoff]
+            arr = arr[:, 1:] - arr[:, :-1]
+
+            np.savetxt(out, arr)
+
+        return arr
+
+class TorchTrainerBase(Label):
+
+    def cal_error(self, out, y):
+        out = out.detach().numpy()
+        y = y.detach().numpy()
+        return np.mean( np.abs ((out - y)/ y))
+
+    def run_epoch(self, data, model, optimizer):
+        """Train model for one pass of train data, and return loss, acccuracy"""
+
+        # training label
+        is_training = model.training
+        percenterror = []
+
+        loss_function = MAPELoss()
+
+        # Iterate through batches
+
+        for batch in tqdm(data):
+
+            # Grab x and y
+            x, y = batch['x'], batch['y']
+
+            print(x.shape)
+            # get prediction
+            out = model(x)
+
+            #print('out:', out, 'y:', y)
+
+            percenterror.append( self.cal_error(out, y))
+            # If training, do an update.
+            if is_training:
+                optimizer.zero_grad()
+                joint_loss = loss_function(out, y)
+                joint_loss.backward()
+                optimizer.step()
+
+        # Calculate epoch level scores
+        avg_percenterror = np.mean(percenterror)
+        return avg_percenterror
+
+    def train_model(self, train_data, dev_data, lr=0.03, momentum=0.9, weight_decay = 0.02, n_epochs=30):
+        """Train a model for N epochs given data and hyper-params."""
+        
+        model = self.model
+
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay = weight_decay)
+
+        trainerr = np.zeros(n_epochs)
+        validerr = np.zeros(n_epochs)
+
+        print("-------------- Training: METRIC = Energy \n")
+        
+        for i, epoch in enumerate(range(1, n_epochs + 1)):
+            print("-------------\nEpoch {}:\n".format(epoch))
+
+            # Run **training***
+            err = self.run_epoch(train_data, model.train(), optimizer)
+            trainerr[i] = err
+            print('Train | avg percent error : {:.6f} '.format(err))
+
+            # Run **validation**
+            err = self.run_epoch(dev_data, model.eval(), optimizer)
+            validerr[i] = err
+            print('Valid | avg percent error : {:.6f} '.format(err))
+
+            # Save model
+            
+        self.model = model
+        return trainerr, validerr
+    
+    def get_pred(self, X):
+        
+        model = self.model
+        model.eval()
+
+        X = torch.tensor(X, dtype=torch.float32)
+        pred = model(X).detach().numpy()
+
+        return pred
+
+class Energy(Label):
+
+    def __init__(self, name='energy', cutoff=30):
+        self.name = name
+        self.cutoff = cutoff
+
     
     def set_data_dir(self, case_id): 
 
@@ -166,41 +320,11 @@ class Energy(Label):
         return X_train, y_train, X_val, y_val, X_test, y_test
 
 
-    def train_model(self, train_data, dev_data, lr=0.03, momentum=0.9, weight_decay = 0.02, n_epochs=30):
-        """Train a model for N epochs given data and hyper-params."""
-        
-        model = self.model
-
-        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay = weight_decay)
-
-        trainerr = np.zeros(n_epochs)
-        validerr = np.zeros(n_epochs)
-
-        print("-------------- Training: METRIC = Energy \n")
-        
-        for i, epoch in enumerate(range(1, n_epochs + 1)):
-            print("-------------\nEpoch {}:\n".format(epoch))
-
-            # Run **training***
-            err = run_epoch(train_data, model.train(), optimizer)
-            trainerr[i] = err
-            print('Train | avg percent error : {:.6f} '.format(err))
-
-            # Run **validation**
-            err = run_epoch(dev_data, model.eval(), optimizer)
-            validerr[i] = err
-            print('Valid | avg percent error : {:.6f} '.format(err))
-
-            # Save model
-            
-        self.model = model
-        return trainerr, validerr
-    
-
     def visualize_pred(self, y_pred, y_test):
         
         sample = 5
-        fig, ax = plt.subplots( 1, sample, figsize=(10, 10 * sample))
+        plot_dir = self.plot_dir
+        fig, ax = plt.subplots( 1, sample, figsize=( 8 * sample, 10))
         inds = np.random.choice( np.arange(y_pred.shape[0]), sample )
 
         pred = y_pred[inds]
@@ -214,55 +338,19 @@ class Energy(Label):
             ax[i].scatter(x, ref[i], label='true')
             ax[i].legend()
 
-        plt.show()
+        fig.savefig(plot_dir)
 
-class EnergyGSGap(Energy):
-
-    def process_y(self):
-
-        dir = self.data_dir
-        key = self.name
-        cutoff = self.cutoff
-
-        out = dir + key + 'cutoff{}gsgap'.format(cutoff)
-
-        if os.path.exists(out):
-            arr = np.loadtxt( out)
-
-        else:
-            arr = np.loadtxt(dir + key)
-            arr = arr[:, :cutoff]
-            arr = arr - np.reshape( np.repeat(arr[:, 0], arr.shape[-1]), arr.shape)
-            arr = arr[:, 1:]
-
-            np.savetxt(out, arr)
-
-        return arr
+class EnergyGSGap(Energy, CNNBase, GSGapBase, TorchTrainerBase):
 
     def init_model(self):
         self.model = Energy1DCNN(self.cutoff - 1)
 
-class EnergyAllGap(Energy):
-
-    def process_y(self):
-
-        dir = self.data_dir
-        key = self.name
-        cutoff = self.cutoff
-
-        out = dir + key + 'cutoff{}allgap'.format(cutoff)
-
-        if os.path.exists(out):
-            arr = np.loadtxt( out)
-
-        else:
-            arr = np.loadtxt(dir + key)
-            arr = arr[:, :cutoff]
-            arr = arr[:, 1:] - arr[:, :-1]
-
-            np.savetxt(out, arr)
-
-        return arr
+class EnergyAllGap(Energy, CNNBase, AllGapBase, TorchTrainerBase):
 
     def init_model(self):
         self.model = Energy1DCNN(self.cutoff - 1)
+
+class EnergyNearestNGSGap(Energy, NearestNeighborBase, GSGapBase, TorchTrainerBase):
+
+    def init_model(self):
+        self.model = EnergyForward(self.cutoff - 1)

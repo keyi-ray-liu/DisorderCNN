@@ -113,6 +113,37 @@ class Energy1DCNN(nn.Module):
 
 
         return energy
+    
+class EnergyForward(nn.Module):
+    def __init__(self, outputdim):
+        super(EnergyForward, self).__init__()
+        # TODO initialize model layers here
+        self.relu = nn.ReLU()
+        self.flatten = Flatten()
+        self.pool = nn.MaxPool1d(2)
+        self.dropout = nn.Dropout(p=0.5)
+        self.first  = nn.Linear(11, 1024)
+        self.hidden = nn.Linear(1024, 1024)
+        self.hidden2 = nn.Linear( 1024, 1024)
+        self.out = nn.Linear(1024, outputdim)
+
+    def forward(self, x):
+
+        x = self.first(x)
+        x = self.relu(x)
+        x = self.hidden(x)
+        x = self.relu(x)
+        x = self.hidden2(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.out(x)
+        x = self.relu(x)
+
+        energy = x
+        # ipr = x[:, 10:]
+
+
+        return energy
 
 class MSEdoubleCNN(nn.Module):
 
@@ -230,3 +261,12 @@ class MAPECNN(nn.Module):
 
         return ipr
 
+class MAPELoss(nn.Module):
+    def __init__(self):
+        super(MAPELoss, self).__init__()
+ 
+    def forward(self, inputs, targets):        
+        
+        MAPE = torch.mean(torch.abs ( ( inputs - targets)/targets))
+        
+        return MAPE
