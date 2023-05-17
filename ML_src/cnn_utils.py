@@ -36,36 +36,7 @@ def batchify_data(x_data, y_data, batch_size):
         })
     return batches
 
-def train_model(train_data, dev_data, label, lr=0.03, momentum=0.9, weight_decay = 0.02, n_epochs=30):
-    """Train a model for N epochs given data and hyper-params."""
-    
-    model = label.model
-    name = label.name
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay = weight_decay)
-
-    trainerr = np.zeros(n_epochs)
-    validerr = np.zeros(n_epochs)
-
-    print("-------------- Training: METRIC = {} \n".format(name))
-    
-    for i, epoch in enumerate(range(1, n_epochs + 1)):
-        print("-------------\nEpoch {}:\n".format(epoch))
-
-        # Run **training***
-        err = run_epoch(train_data, model.train(), optimizer)
-        trainerr[i] = err
-        print('Train | avg percent error : {:.6f} '.format(err))
-
-        # Run **validation**
-        err = run_epoch(dev_data, model.eval(), optimizer)
-        validerr[i] = err
-        print('Valid | avg percent error : {:.6f} '.format(err))
-
-        # Save model
-        
-
-    return trainerr, validerr, model
     
 def cal_error(out, y):
     out = out.detach().numpy()
