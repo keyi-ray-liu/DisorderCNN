@@ -31,9 +31,10 @@ def select_label():
 
     num = int(sys.argv[1])
     labels = {
-        0: EnergyGSGap(),
-        1: EnergyAllGap(),
-        2: EnergyNearestNGSGap()
+        0: EnergyGSGapMAPE(),
+        1: EnergyAllGapMAPE(),
+        2: EnergyNearestNGSGapMAPE(),
+        3: EnergyGSGapMSE()
     }
 
     print(f"Model selected: {labels[num]}")

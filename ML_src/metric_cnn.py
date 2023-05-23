@@ -7,12 +7,12 @@ from tqdm import tqdm
 
 class Label():
 
-    def __init__(self, name, description=''):
+    def __init__(self, name):
         self.name = name
-        self.model_dir = ''
-        self.data_dir = ''
-        self.plot_dir = ''
-        self.model = None
+        self.init_model()
+        self.set_model_dir()
+        self.set_data_dir()
+        self.set_plot_dir()
 
     def set_data_dir(self): 
         return NotImplementedError("label must define their data dir setting method")
@@ -83,8 +83,9 @@ class Label():
 
 class Ipr(Label):
 
-    def train(self,data):
-        return None
+    def __init__(self, name='gpi', if_sort=0):
+        self.name = name
+        self.if_sort = if_sort
 
 class Gpi(Label):
 
@@ -92,52 +93,13 @@ class Gpi(Label):
         self.name = name
         self.if_sort = if_sort
 
-    def set_data_dir(self, case_id): 
+    def set_data_dir(self, case_id='0'): 
 
         cwd = os.getcwd() + '/batch{}/'.format(str(case_id))
         if not os.path.exists(cwd):
             os.mkdir(cwd)
         
         self.data_dir = cwd
-
-    def load_data(self):
-        
-        dir = self.data_dir
-        ifsort = self.if_sort
-        key = self.name
-
-        disx = np.loadtxt(dir + 'disx')
-        disy = np.loadtxt(dir + 'disy')
-        
-        if not ifsort:
-            arr = np.loadtxt(dir + key)
-
-        else:
-
-            if os.path.exists(dir + key + 'sort'):
-                arr = np.loadtxt( dir + key + 'sort')
-
-            else:
-                arr = np.loadtxt(dir + key)
-                arr = np.sort(arr)
-                np.savetxt(dir + key + 'sort', arr)
-                
-
-        arr = np.log(arr)
-
-        #for the moment we assume a square lattice
-        # get dim
-
-        dis = np.zeros( (disx.shape[0], 2, disx.shape[1]))
-        dis[:, 0, :] = disx
-        dis[:, 1, :] = disy
-
-        # currently only train for ipr of gs_subtracted 
-
-        X_train, X_test, y_train, y_test = train_test_split(dis, arr, test_size=0.2, random_state=42)
-        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.4, random_state=55)
-
-        return X_train, y_train, X_val, y_val, X_test, y_test
 
         
     def init_model(self):
@@ -306,14 +268,18 @@ class MAPEtorch(TorchTrainerBase):
     def set_loss_function(self):
         return MAPELoss()
     
+class MSEtorch(TorchTrainerBase):
+
+    def set_loss_function(self):
+        return MSELoss()
+    
 class Energy(Label):
 
-    def __init__(self, name='energy', cutoff=30):
-        self.name = name
+    def __init__(self,  cutoff=30):
         self.cutoff = cutoff
-
-    
-    def set_data_dir(self, case_id): 
+        super(Energy, self).__init__('energy')
+        
+    def set_data_dir(self, case_id='0'): 
 
         cwd = os.getcwd() + '/batch{}/'.format(str(case_id))
         if not os.path.exists(cwd):
@@ -347,17 +313,22 @@ class Energy(Label):
 
         fig.savefig(plot_dir)
 
-class EnergyGSGap(Energy, CNNBase, GSGapBase, MAPEtorch):
+class EnergyGSGapMAPE(Energy, CNNBase, GSGapBase, MAPEtorch):
 
     def init_model(self):
         self.model = Energy1DCNN(self.cutoff - 1)
 
-class EnergyAllGap(Energy, CNNBase, AllGapBase, MAPEtorch):
+class EnergyAllGapMAPE(Energy, CNNBase, AllGapBase, MAPEtorch):
 
     def init_model(self):
         self.model = Energy1DCNN(self.cutoff - 1)
 
-class EnergyNearestNGSGap(Energy, NearestNeighborBase, GSGapBase, MAPEtorch):
+class EnergyNearestNGSGapMAPE(Energy, NearestNeighborBase, GSGapBase, MAPEtorch):
 
     def init_model(self):
         self.model = EnergyForward(self.cutoff - 1)
+
+class EnergyGSGapMSE(Energy, CNNBase, GSGapBase, MSEtorch):
+
+    def init_model(self):
+        self.model = Energy1DCNN(self.cutoff - 1)

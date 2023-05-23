@@ -17,7 +17,6 @@ if __name__ == '__main__':
     for i, case in enumerate(which_cases):
 
         label.set_data_dir(case)
-        label.init_model()
         label.set_model_dir(case)
         label.set_plot_dir(case)
         _, _, _, _, X_test, y_test = label.load_data()

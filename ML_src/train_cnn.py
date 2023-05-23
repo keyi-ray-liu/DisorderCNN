@@ -30,7 +30,6 @@ if __name__ == '__main__':
         label.set_data_dir(case)
         # for the training script we do not need test data
         X_train, y_train, X_val, y_val, _, _ = label.load_data()
-        label.init_model()
 
         Train = batchify_data(X_train, y_train, batch_size)
         Val = batchify_data(X_val, y_val, batch_size)
