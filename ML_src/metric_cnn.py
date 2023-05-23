@@ -38,7 +38,14 @@ class Label():
         self.plot_dir = cwd + model_name + label_name + str(description) + ".png"
         
     def load_data(self):
-        return NotImplementedError("label must define their data loading method")
+        
+        y = self.process_y()
+        x = self.process_x()
+        
+        X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.4, random_state=55)
+
+        return X_train, y_train, X_val, y_val, X_test, y_test
     
     def process_x(self):
         return NotImplementedError("label must define their x process method")
@@ -161,7 +168,7 @@ class NearestNeighborBase(Label):
         disx = np.loadtxt(dir + 'disx')
         disy = np.loadtxt(dir + 'disy')
         
-        dis = np.sqrt(( disx[:, 1:] + 1 - disx[:, :-1]) **2 + (disy[:, 1:] - disy[:, :-1]) ** 2 )
+        dis = np.exp( np.sqrt(( disx[:, 1:] + 1 - disx[:, :-1]) **2 + (disy[:, 1:] - disy[:, :-1]) ** 2 ) - 1)
 
         return dis
 
@@ -217,6 +224,9 @@ class TorchTrainerBase(Label):
         y = y.detach().numpy()
         return np.mean( np.abs ((out - y)/ y))
 
+    def set_loss_function(self):
+        return NotImplementedError("label must define their data dir setting method")
+    
     def run_epoch(self, data, model, optimizer):
         """Train model for one pass of train data, and return loss, acccuracy"""
 
@@ -224,7 +234,7 @@ class TorchTrainerBase(Label):
         is_training = model.training
         percenterror = []
 
-        loss_function = MAPELoss()
+        loss_function = self.set_loss_function()
 
         # Iterate through batches
 
@@ -291,6 +301,11 @@ class TorchTrainerBase(Label):
 
         return pred
 
+class MAPEtorch(TorchTrainerBase):
+
+    def set_loss_function(self):
+        return MAPELoss()
+    
 class Energy(Label):
 
     def __init__(self, name='energy', cutoff=30):
@@ -306,51 +321,43 @@ class Energy(Label):
         
         self.data_dir = cwd
 
-    def load_data(self):
-        
-        
-        arr = self.process_y()
-        dis = self.process_x()
-        
-        # currently only train for ipr of gs_subtracted 
-
-        X_train, X_test, y_train, y_test = train_test_split(dis, arr, test_size=0.2, random_state=42)
-        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.4, random_state=55)
-
-        return X_train, y_train, X_val, y_val, X_test, y_test
-
 
     def visualize_pred(self, y_pred, y_test):
         
-        sample = 5
+        row, col = 2, 5
+        sample = row * col
         plot_dir = self.plot_dir
-        fig, ax = plt.subplots( 1, sample, figsize=( 8 * sample, 10))
+        fig, ax = plt.subplots( row,  col, figsize=( 4 * col, 5 * row))
         inds = np.random.choice( np.arange(y_pred.shape[0]), sample )
 
         pred = y_pred[inds]
         ref = y_test[inds]
 
         x = np.arange(1, y_pred.shape[-1] + 1)
+        cnt = 0 
 
-        for i in range(sample):
+        for i in range(row):
+            for j in range(col):
 
-            ax[i].scatter(x, pred[i], label='pred' )
-            ax[i].scatter(x, ref[i], label='true')
-            ax[i].legend()
+                ax[i][j].scatter(x, pred[cnt], label='pred' )
+                ax[i][j].scatter(x, ref[cnt], label='true')
+                ax[i][j].legend()
+
+                cnt += 1
 
         fig.savefig(plot_dir)
 
-class EnergyGSGap(Energy, CNNBase, GSGapBase, TorchTrainerBase):
+class EnergyGSGap(Energy, CNNBase, GSGapBase, MAPEtorch):
 
     def init_model(self):
         self.model = Energy1DCNN(self.cutoff - 1)
 
-class EnergyAllGap(Energy, CNNBase, AllGapBase, TorchTrainerBase):
+class EnergyAllGap(Energy, CNNBase, AllGapBase, MAPEtorch):
 
     def init_model(self):
         self.model = Energy1DCNN(self.cutoff - 1)
 
-class EnergyNearestNGSGap(Energy, NearestNeighborBase, GSGapBase, TorchTrainerBase):
+class EnergyNearestNGSGap(Energy, NearestNeighborBase, GSGapBase, MAPEtorch):
 
     def init_model(self):
         self.model = EnergyForward(self.cutoff - 1)

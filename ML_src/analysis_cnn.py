@@ -7,7 +7,7 @@ from cnn_utils import *
 if __name__ == '__main__':
 
 
-
+    
     # select which set of disorder parameters we want to look at. 
     # For cross comparison down in plot, enter multiple 
     # For function to work properly which_cases always need to be a list
@@ -16,7 +16,6 @@ if __name__ == '__main__':
 
     for i, case in enumerate(which_cases):
 
-        
         label.set_data_dir(case)
         label.init_model()
         label.set_model_dir(case)

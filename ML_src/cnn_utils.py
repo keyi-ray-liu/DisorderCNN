@@ -35,6 +35,8 @@ def select_label():
         1: EnergyAllGap(),
         2: EnergyNearestNGSGap()
     }
+
+    print(f"Model selected: {labels[num]}")
     return labels[num]
     
 
