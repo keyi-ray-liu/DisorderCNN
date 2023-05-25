@@ -23,10 +23,14 @@ class Label():
         if not os.path.exists(cwd):
             os.mkdir(cwd)
         
-        label_name = self.__class__.__name__
+        self.label_name = self.__class__.__name__
         model_name = self.model.__class__.__name__
-        self.model_dir = cwd + model_name + label_name + str(description)
+        self.full_model_name = model_name + self.label_name + str(description)
+        self.model_dir = cwd + self.full_model_name
 
+    def get_label_name(self):
+        return self.label_name
+    
     def set_plot_dir(self, description=''):
 
         cwd = os.getcwd() + '/plots/'
@@ -42,8 +46,8 @@ class Label():
         y = self.process_y()
         x = self.process_x()
         
-        X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
-        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.4, random_state=55)
+        X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.4, random_state=42)
+        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=55)
 
         return X_train, y_train, X_val, y_val, X_test, y_test
     
@@ -106,7 +110,7 @@ class Gpi(Label):
         self.model = GPICNN()
 
 
-class CNNBase(Label):
+class CNNDis(Label):
 
     def process_x(self):
 
@@ -121,7 +125,7 @@ class CNNBase(Label):
 
         return dis
     
-class NearestNeighborBase(Label):
+class NearestNeighborDis(Label):
 
     def process_x(self):
 
@@ -134,7 +138,7 @@ class NearestNeighborBase(Label):
 
         return dis
 
-class GSGapBase(Label):
+class GSGap(Label):
 
     def process_y(self):
 
@@ -157,7 +161,7 @@ class GSGapBase(Label):
 
         return arr
     
-class AllGapBase(Label):
+class AllGap(Label):
 
     def process_y(self):
 
@@ -302,33 +306,41 @@ class Energy(Label):
         x = np.arange(1, y_pred.shape[-1] + 1)
         cnt = 0 
 
+        diff = np.round(np.sum( ( pred - ref) ** 2, axis = 1), decimals=2)
+
         for i in range(row):
             for j in range(col):
 
                 ax[i][j].scatter(x, pred[cnt], label='pred' )
                 ax[i][j].scatter(x, ref[cnt], label='true')
+                ax[i][j].set_title( 'diff = {}'.format(diff[cnt]))
                 ax[i][j].legend()
 
                 cnt += 1
 
+        fig.suptitle('Model = {}'.format(self.full_model_name))
         fig.savefig(plot_dir)
 
-class EnergyGSGapMAPE(Energy, CNNBase, GSGapBase, MAPEtorch):
+class EnergyGSGapMAPE(Energy, CNNDis, GSGap, MAPEtorch):
 
     def init_model(self):
         self.model = Energy1DCNN(self.cutoff - 1)
 
-class EnergyAllGapMAPE(Energy, CNNBase, AllGapBase, MAPEtorch):
+class EnergyAllGapMAPE(Energy, CNNDis, AllGap, MAPEtorch):
 
     def init_model(self):
         self.model = Energy1DCNN(self.cutoff - 1)
 
-class EnergyNearestNGSGapMAPE(Energy, NearestNeighborBase, GSGapBase, MAPEtorch):
+class EnergyNearestNGSGapMAPE(Energy, NearestNeighborDis, GSGap, MAPEtorch):
 
     def init_model(self):
         self.model = EnergyForward(self.cutoff - 1)
 
-class EnergyGSGapMSE(Energy, CNNBase, GSGapBase, MSEtorch):
+class EnergyGSGapMSE(Energy, CNNDis, GSGap, MSEtorch):
 
     def init_model(self):
         self.model = Energy1DCNN(self.cutoff - 1)
+
+
+
+

@@ -21,7 +21,7 @@ if __name__ == '__main__':
     which_cases = [0.05]
     #label = Gpi(if_sort = 1)
 
-    label = select_label()
+    label = select_label(int(sys.argv[1]))
 
 
     for i, case in enumerate(which_cases):

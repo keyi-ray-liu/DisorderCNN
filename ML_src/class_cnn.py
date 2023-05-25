@@ -267,7 +267,5 @@ class MAPELoss(nn.Module):
         super(MAPELoss, self).__init__()
  
     def forward(self, inputs, targets):        
-        
         MAPE = torch.mean(torch.abs ( ( inputs - targets)/targets))
-        
         return MAPE
