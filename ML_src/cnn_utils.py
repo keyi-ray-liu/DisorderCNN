@@ -21,7 +21,7 @@ class Energy_processor():
     def visualize_pred(self, case):
         
         row, col = 2, 5
-        s = 5
+        s = 15
         inds = []
         sample = row * col
         plot_dir = os.getcwd() + '/plots/multi-comp.png'
@@ -57,10 +57,11 @@ class Energy_processor():
         for i in range(row):
             for j in range(col):
 
-                ax[i][j].scatter(x, ref[cnt], label='true', s=s)
-                ax[i][j].legend()
+                ax[i][j].scatter(x, ref[cnt], label='true', marker='x', s=s)
+                
                 cnt += 1
 
+        ax[-1][-1].legend()
         fig.savefig(plot_dir)
 
 
@@ -87,7 +88,8 @@ def select_label( arg):
         0: EnergyGSGapMAPE(),
         1: EnergyAllGapMAPE(),
         2: EnergyNearestNGSGapMAPE(),
-        3: EnergyGSGapMSE()
+        3: EnergyGSGapMSE(),
+        4: ENergyGSGapGSWeightedMSE()
     }
     
     if num == -1:

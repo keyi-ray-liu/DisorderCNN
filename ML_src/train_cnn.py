@@ -8,8 +8,8 @@ from cnn_utils import *
 if __name__ == '__main__':
 
 
-    batch_size = 100
-    n_epochs = 5
+    batch_size = 10
+    n_epochs = 4
 
     lr = 0.03
     decay = 0.02

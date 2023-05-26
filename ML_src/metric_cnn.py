@@ -209,7 +209,6 @@ class TorchTrainerBase(Label):
             # Grab x and y
             x, y = batch['x'], batch['y']
 
-            print(x.shape)
             # get prediction
             out = model(x)
 
@@ -277,10 +276,34 @@ class MSEtorch(TorchTrainerBase):
     def set_loss_function(self):
         return MSELoss()
     
+class MSEWtorch(TorchTrainerBase):
+
+    def mod_weights(self, weights):
+        raise NotImplementedError("specify weight modding method")
+    
+    def set_weights(self):
+        dim = self.output   #GS
+        weights = torch.ones(dim)
+        return self.mod_weights(weights)
+    
+    def set_loss_function(self):
+        return MSEWLoss(self.set_weights())
+
+class GSWtorch(MSEWtorch):
+    """Ground state weighted MSE"""
+
+    def mod_weights(self, weights):
+
+        gs = 0
+        weights[gs] = 3.0
+        print(weights)
+        return weights
+
 class Energy(Label):
 
     def __init__(self,  cutoff=30):
         self.cutoff = cutoff
+        self.output = cutoff - 1
         super(Energy, self).__init__('energy')
         
     def set_data_dir(self, case_id='0'): 
@@ -324,23 +347,26 @@ class Energy(Label):
 class EnergyGSGapMAPE(Energy, CNNDis, GSGap, MAPEtorch):
 
     def init_model(self):
-        self.model = Energy1DCNN(self.cutoff - 1)
+        self.model = Energy1DCNN(self.output)
 
 class EnergyAllGapMAPE(Energy, CNNDis, AllGap, MAPEtorch):
 
     def init_model(self):
-        self.model = Energy1DCNN(self.cutoff - 1)
+        self.model = Energy1DCNN(self.output)
 
 class EnergyNearestNGSGapMAPE(Energy, NearestNeighborDis, GSGap, MAPEtorch):
 
     def init_model(self):
-        self.model = EnergyForward(self.cutoff - 1)
+        self.model = EnergyForward(self.output)
 
 class EnergyGSGapMSE(Energy, CNNDis, GSGap, MSEtorch):
 
     def init_model(self):
-        self.model = Energy1DCNN(self.cutoff - 1)
+        self.model = Energy1DCNN(self.output)
 
+class ENergyGSGapGSWeightedMSE(Energy, CNNDis, GSGap, GSWtorch):
 
+    def init_model(self):
+        self.model = Energy1DCNN(self.output)
 
 

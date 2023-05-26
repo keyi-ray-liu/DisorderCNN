@@ -79,6 +79,47 @@ class Energy2DCNN(nn.Module):
 
         return energy
     
+
+class Energy1DCNNComplex(nn.Module):
+    def __init__(self, outputdim):
+        super(Energy1DCNNComplex, self).__init__()
+        # TODO initialize model layers here
+        self.cnn1 = nn.Conv1d(2, 512, kernel_size = 3, padding=1)
+        self.cnn2 = nn.Conv1d(512, 1024, kernel_size = 3, padding = 1)
+        self.cnn3 = nn.Conv1d(1024, 2048, kernel_size=3, padding=1)
+        self.relu = nn.ReLU()
+        self.flatten = Flatten()
+        self.pool = nn.MaxPool1d(2)
+        self.dropout = nn.Dropout(p=0.5)
+        self.hidden = nn.Linear(2048 , 2048)
+        self.hidden2 = nn.Linear( 2048, 2048)
+        self.out = nn.Linear(2048, outputdim)
+
+    def forward(self, x):
+
+        x = self.cnn1(x) # size 12
+        x = self.relu(x)
+        x = self.pool(x) # size 6
+        x = self.cnn2(x) # size 6
+        x = self.pool(x) # size 3
+        x = self.cnn3(x) # size 3
+        x = self.pool(x) # size 1
+        x = self.flatten(x)
+        x = self.hidden(x)
+        x = self.relu(x)
+        x = self.hidden2(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.out(x)
+        x = self.relu(x)
+
+        energy = x
+        # ipr = x[:, 10:]
+
+
+        return energy
+    
+
 class Energy1DCNN(nn.Module):
     def __init__(self, outputdim):
         super(Energy1DCNN, self).__init__()
@@ -115,6 +156,7 @@ class Energy1DCNN(nn.Module):
 
         return energy
     
+
 class EnergyForward(nn.Module):
     def __init__(self, outputdim):
         super(EnergyForward, self).__init__()
@@ -269,3 +311,14 @@ class MAPELoss(nn.Module):
     def forward(self, inputs, targets):        
         MAPE = torch.mean(torch.abs ( ( inputs - targets)/targets))
         return MAPE
+
+class MSEWLoss(nn.Module):
+
+    def __init__(self, weights):
+        self.weights = weights
+        super(MSEWLoss, self).__init__()
+ 
+    def forward(self, inputs, targets):   
+    
+        MSEW = torch.mean( self.weights.tile( inputs.shape[0], 1) * (inputs - targets) ** 2)
+        return MSEW
