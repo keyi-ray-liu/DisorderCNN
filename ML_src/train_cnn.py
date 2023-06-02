@@ -8,37 +8,60 @@ from cnn_utils import *
 if __name__ == '__main__':
 
 
-    batch_size = 10
-    n_epochs = 4
+    batch_size = 6
+    n_epochs = 3
 
     lr = 0.03
     decay = 0.02
     momentum = 0.9
 
+    weights = [1.0, 1.5, 2.0, 4.0]
     # select which set of disorder parameters we want to look at. 
     # For cross comparison down in plot, enter multiple 
     # For function to work properly which_cases always need to be a list
     which_cases = [0.05]
+    
     #label = Gpi(if_sort = 1)
+    internal_label = int(sys.argv[1])
 
-    label = select_label(int(sys.argv[1]))
+    
 
+    for weight in weights:
+        for i, case in enumerate(which_cases):
+            
+            ID = str(int(time.time()/60))
+            label = select_label(internal_label, ID)
+            description = "case{}".format(case)
+            label.set_data_dir(case_id=case)
 
-    for i, case in enumerate(which_cases):
+            if isinstance(label, GSGap_GSW_MSE):
+                label.set_weights(weight)
+                
+            # for the training script we do not need test data
+            X_train, y_train, X_val, y_val, _, _ = label.load_data()
 
+            Train = batchify_data(X_train, y_train, batch_size)
+            Val = batchify_data(X_val, y_val, batch_size)
+            #Test = batchify_data(X_test, y_test, batch_size)
 
-        label.set_data_dir(case)
-        # for the training script we do not need test data
-        X_train, y_train, X_val, y_val, _, _ = label.load_data()
+            trainerr, validerr = label.train_model(Train, Val, lr=lr, weight_decay = decay, momentum = momentum, n_epochs=n_epochs)
 
-        Train = batchify_data(X_train, y_train, batch_size)
-        Val = batchify_data(X_val, y_val, batch_size)
-        #Test = batchify_data(X_test, y_test, batch_size)
+            label.set_model_dir(description = description)
+        
+            parameter = {
+                'batch_size' : batch_size,
+                'n_epochs' : n_epochs,
+                'lr' : lr,
+                'decay' : decay,
+                'momentum' : momentum,
+                'model' : label.get_model_name(),
+                'label' : label.get_label_name(),
+                'internal_label' : internal_label,
+                'id' : label.get_id()
+            }
 
-        trainerr, validerr = label.train_model(Train, Val, lr=lr, weight_decay = decay, momentum = momentum, n_epochs=n_epochs)
+            if isinstance(label, GSGap_GSW_MSE):
+                parameter['weight'] = weight
 
-        label.set_model_dir(case)
-        label.export_model()
+            label.export_model(parameter)
 
-        np.savetxt(label.data_dir + 'trainerrs', trainerr)
-        np.savetxt(label.data_dir + 'validerrs', validerr)

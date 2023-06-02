@@ -12,13 +12,12 @@ if __name__ == '__main__':
     # For cross comparison down in plot, enter multiple 
     # For function to work properly which_cases always need to be a list
     which_cases = [0.05]
-    control = int(sys.argv[1])
-    label = select_label( control)
+
+    # inputs will be all the file names for the paras for the labels waiting to be analyzed
+    input = sys.argv[1:]
+
+    weight = 1.0
 
     for i, case in enumerate(which_cases):
         
-        if control >= 0:
-            single_label(case, label)
-
-        else:
-            multi_label(case, label)
+        multi_label(input, case=case)

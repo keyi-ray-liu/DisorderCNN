@@ -10,13 +10,26 @@ from os.path import exists
 from class_cnn import *
 import sys
 from metric_cnn import *
+import time
 from collections import Counter
 
 
-class Energy_processor():
+class Energy_multi_processor():
     """processor class for multiple labels"""
-    def __init__(self, labels) -> None:
-        self.labels = labels
+    def __init__(self, inputs) -> None:
+        
+        model_dir = 'models/'
+        parameters = []
+
+        for input in inputs:
+            with open( model_dir + input, 'r') as f:
+                new = json.load(f)
+            parameters.append(new)
+
+        self.parameters = parameters
+
+    def get_parameters(self):
+        print(self.parameters)
 
     def visualize_pred(self, case):
         
@@ -24,14 +37,19 @@ class Energy_processor():
         s = 15
         inds = []
         sample = row * col
-        plot_dir = os.getcwd() + '/plots/multi-comp.png'
+        plot_dir = os.getcwd() + '/plots/' + '_'.join([ parameter['label'] for parameter in self.parameters ]) + '.png'
         fig, ax = plt.subplots( row,  col, figsize=( 4 * col, 5 * row))
 
-        for label in self.labels:
+        for i, parameter in enumerate(self.parameters):
+            
+            label = select_label(parameter['internal_label'], parameter['id'])
+            description = "case{}".format(case)
 
-            label.set_data_dir(case)
-            label.set_model_dir(case)
-            label.set_plot_dir(case)
+            if isinstance(label,GSGap_GSW_MSE ):
+                label.set_weights(parameter['weight'])
+
+            label.set_data_dir(case_id=case)
+            label.set_model_dir(description=description)
             _, _, _, _, X_test, y_test = label.load_data()
             
             label.import_model()
@@ -49,7 +67,7 @@ class Energy_processor():
             for i in range(row):
                 for j in range(col):
 
-                    ax[i][j].scatter(x, pred[cnt], label=label.get_label_name(), s=s)
+                    ax[i][j].scatter(x, pred[cnt], label=parameter['weight'], s=s)
 
                     cnt += 1
 
@@ -65,7 +83,7 @@ class Energy_processor():
         fig.savefig(plot_dir)
 
 
-        
+   
 
 def batchify_data(x_data, y_data, batch_size):
     """Takes a set of data points and labels and groups them into batches."""
@@ -81,30 +99,23 @@ def batchify_data(x_data, y_data, batch_size):
         })
     return batches
 
-def select_label( arg):
+def select_label( arg, ID):
 
     num = int(arg)
     labels = {
-        0: EnergyGSGapMAPE(),
-        1: EnergyAllGapMAPE(),
-        2: EnergyNearestNGSGapMAPE(),
-        3: EnergyGSGapMSE(),
-        4: ENergyGSGapGSWeightedMSE()
+        0: GSGap_MAPE(ID),
+        1: AllGap_MAPE(ID),
+        2: NearestN_GSGap_MAPE(ID),
+        3: GSGap_MSE(ID),
+        4: GSGap_GSW_MSE(ID),
+        5: AllGap_MSE(ID)
     }
     
-    if num == -1:
-        return Energy_processor( [
-            EnergyGSGapMAPE(),
-            EnergyNearestNGSGapMAPE(),
-            EnergyGSGapMSE()
-        ])
-
-    else:
-        try:
-            print(f"Model selected: {labels[num]}")
-            return labels[num]
-        except KeyError:
-            raise KeyError("not a valid label index, have to be -1 or int in 0:4")
+    try:
+        print(f"Model selected: {labels[num]}")
+        return labels[num]
+    except KeyError:
+        raise KeyError("not a valid label index")
     
 
 def hist(res):
@@ -122,11 +133,19 @@ def compare(y_pred, y_test):
     res = Counter(res)
     hist(res)
 
-def single_label(case, label):
+def single_label( label :Label, **kwargs):
 
-    label.set_data_dir(case)
-    label.set_model_dir(case)
-    label.set_plot_dir(case)
+    case = kwargs.pop('case')
+    
+    if isinstance(label, GSGap_GSW_MSE):
+        weight = kwargs.pop('weight')
+        label.set_weights(weight)
+
+    description = "case{}".format(case)
+    label.set_data_dir(case_id =case)
+    label.set_model_dir(description=description)
+    label.set_plot_dir(description=description)
+
     _, _, _, _, X_test, y_test = label.load_data()
     
     label.import_model()
@@ -136,8 +155,15 @@ def single_label(case, label):
     compare(y_pred, y_test)
 
 
-def multi_label(case, processor):
+def multi_label( inputs, case):
 
     # get test data set. Has to be on the same data set, so
+    processor = Energy_multi_processor(inputs)
 
+    #processor.get_parameters()
     processor.visualize_pred(case)
+
+
+
+
+

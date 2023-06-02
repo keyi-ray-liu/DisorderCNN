@@ -2,17 +2,19 @@ import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 from class_cnn import *
-import matplotlib.pyplot as plt
 from tqdm import tqdm
+import time
+import json
 
 class Label():
 
-    def __init__(self, name):
+    def __init__(self, name, ID):
         self.name = name
+        self.label_name = self.__class__.__name__
+        self.id = ID
         self.init_model()
-        self.set_model_dir()
-        self.set_data_dir()
-        self.set_plot_dir()
+        
+
 
     def set_data_dir(self): 
         return NotImplementedError("label must define their data dir setting method")
@@ -23,23 +25,20 @@ class Label():
         if not os.path.exists(cwd):
             os.mkdir(cwd)
         
-        self.label_name = self.__class__.__name__
         model_name = self.model.__class__.__name__
-        self.full_model_name = model_name + self.label_name + str(description)
+        self.full_model_name = '-'.join([model_name, self.label_name, str(description), self.id , '.pt'])
+        self.full_para_name = '-'.join([model_name, self.label_name, str(description), self.id, '.json'])
         self.model_dir = cwd + self.full_model_name
+        self.para_dir = cwd + self.full_para_name
 
     def get_label_name(self):
         return self.label_name
     
-    def set_plot_dir(self, description=''):
-
-        cwd = os.getcwd() + '/plots/'
-        if not os.path.exists(cwd):
-            os.mkdir(cwd)
-        
-        label_name = self.__class__.__name__
-        model_name = self.model.__class__.__name__
-        self.plot_dir = cwd + model_name + label_name + str(description) + ".png"
+    def get_model_name(self):
+        return self.model.__class__.__name__
+    
+    def get_id(self):
+        return self.id
         
     def load_data(self):
         
@@ -76,13 +75,14 @@ class Label():
             raise ValueError("THe model defined in model_dir does not exist")
         
         self.model = model
-
-    def visualize_pred(self):
-        return NotImplementedError("label must define their visualization method")
     
-    def export_model(self):
+    def export_model(self, parameter):
         model_dir = self.model_dir
         torch.save(self.model, model_dir)
+
+        para_dir = self.para_dir
+        with open(para_dir, 'w') as f:
+            json.dump(parameter, f, indent=4)
 
 
 class Ipr(Label):
@@ -278,33 +278,38 @@ class MSEtorch(TorchTrainerBase):
     
 class MSEWtorch(TorchTrainerBase):
 
-    def mod_weights(self, weights):
+    def mod_weights(self):
         raise NotImplementedError("specify weight modding method")
     
-    def set_weights(self):
-        dim = self.output   #GS
-        weights = torch.ones(dim)
-        return self.mod_weights(weights)
+    def set_weights(self, weights):
+        self.weights = weights
     
     def set_loss_function(self):
-        return MSEWLoss(self.set_weights())
+        return MSEWLoss(self.mod_weights())
 
 class GSWtorch(MSEWtorch):
     """Ground state weighted MSE"""
 
-    def mod_weights(self, weights):
+    def mod_weights(self):
 
+        if not isinstance( self.weights, float):
+            raise ValueError("GSW only allows one float input")
+        
+        dim = self.output
         gs = 0
-        weights[gs] = 3.0
+        
+        weights = torch.ones(dim)
+        weights[gs] = self.weights
+
         print(weights)
         return weights
 
 class Energy(Label):
 
-    def __init__(self,  cutoff=30):
+    def __init__(self, ID, cutoff=30):
         self.cutoff = cutoff
         self.output = cutoff - 1
-        super(Energy, self).__init__('energy')
+        super(Energy, self).__init__('energy', ID)
         
     def set_data_dir(self, case_id='0'): 
 
@@ -315,58 +320,66 @@ class Energy(Label):
         self.data_dir = cwd
 
 
-    def visualize_pred(self, y_pred, y_test):
+    # def visualize_pred(self, y_pred, y_test):
         
-        row, col = 2, 5
-        sample = row * col
-        plot_dir = self.plot_dir
-        fig, ax = plt.subplots( row,  col, figsize=( 4 * col, 5 * row))
-        inds = np.random.choice( np.arange(y_pred.shape[0]), sample )
+    #     row, col = 2, 5
+    #     sample = row * col
+    #     plot_dir = self.plot_dir
+    #     fig, ax = plt.subplots( row,  col, figsize=( 4 * col, 5 * row))
+    #     inds = np.random.choice( np.arange(y_pred.shape[0]), sample )
 
-        pred = y_pred[inds]
-        ref = y_test[inds]
+    #     pred = y_pred[inds]
+    #     ref = y_test[inds]
 
-        x = np.arange(1, y_pred.shape[-1] + 1)
-        cnt = 0 
+    #     x = np.arange(1, y_pred.shape[-1] + 1)
+    #     cnt = 0 
 
-        diff = np.round(np.sum( ( pred - ref) ** 2, axis = 1), decimals=2)
+    #     diff = np.round(np.sum( ( pred - ref) ** 2, axis = 1), decimals=2)
 
-        for i in range(row):
-            for j in range(col):
+    #     for i in range(row):
+    #         for j in range(col):
 
-                ax[i][j].scatter(x, pred[cnt], label='pred' )
-                ax[i][j].scatter(x, ref[cnt], label='true')
-                ax[i][j].set_title( 'diff = {}'.format(diff[cnt]))
-                ax[i][j].legend()
+    #             ax[i][j].scatter(x, pred[cnt], label='pred' )
+    #             ax[i][j].scatter(x, ref[cnt], label='true')
+    #             ax[i][j].set_title( 'diff = {}'.format(diff[cnt]))
+    #             ax[i][j].legend()
 
-                cnt += 1
+    #             cnt += 1
 
-        fig.suptitle('Model = {}'.format(self.full_model_name))
-        fig.savefig(plot_dir)
+    #     fig.suptitle('Model = {}'.format(self.full_model_name))
+    #     fig.savefig(plot_dir)
+        
 
-class EnergyGSGapMAPE(Energy, CNNDis, GSGap, MAPEtorch):
-
-    def init_model(self):
-        self.model = Energy1DCNN(self.output)
-
-class EnergyAllGapMAPE(Energy, CNNDis, AllGap, MAPEtorch):
+class GSGap_MAPE(Energy, CNNDis, GSGap, MAPEtorch):
 
     def init_model(self):
-        self.model = Energy1DCNN(self.output)
+        self.model = Energy1DCNN(outputdim = self.output)
 
-class EnergyNearestNGSGapMAPE(Energy, NearestNeighborDis, GSGap, MAPEtorch):
+class AllGap_MAPE(Energy, CNNDis, AllGap, MAPEtorch):
+
+    def init_model(self):
+        self.model = Energy1DCNN(outputdim = self.output)
+
+class AllGap_MSE(Energy, CNNDis, AllGap, MSEtorch):
+
+    def init_model(self):
+        self.model = Energy1DCNNComplex(self.output)
+
+class NearestN_GSGap_MAPE(Energy, NearestNeighborDis, GSGap, MAPEtorch):
 
     def init_model(self):
         self.model = EnergyForward(self.output)
 
-class EnergyGSGapMSE(Energy, CNNDis, GSGap, MSEtorch):
+class GSGap_MSE(Energy, CNNDis, GSGap, MSEtorch):
 
     def init_model(self):
-        self.model = Energy1DCNN(self.output)
+        self.model = Energy1DCNN(outputdim = self.output)
 
-class ENergyGSGapGSWeightedMSE(Energy, CNNDis, GSGap, GSWtorch):
-
+class GSGap_GSW_MSE(Energy, CNNDis, GSGap, GSWtorch):
+    
     def init_model(self):
-        self.model = Energy1DCNN(self.output)
-
-
+        self.model = Energy1DCNN(outputdim = self.output)
+    
+    def set_model_dir(self, description=''):
+        description = 'GSweight' + str(self.weights) + str(description)
+        return super(GSGap_GSW_MSE, self).set_model_dir(description)
