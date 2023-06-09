@@ -18,11 +18,10 @@ class Energy_multi_processor():
     """processor class for multiple labels"""
     def __init__(self, inputs) -> None:
         
-        model_dir = 'models/'
         parameters = []
 
         for input in inputs:
-            with open( model_dir + input, 'r') as f:
+            with open(  input, 'r') as f:
                 new = json.load(f)
             parameters.append(new)
 

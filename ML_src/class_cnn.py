@@ -334,7 +334,8 @@ class MSEWLoss(nn.Module):
  
     def forward(self, inputs, targets):   
     
-        MSEW = torch.mean( self.weights.tile( inputs.shape[0], 1) * (inputs - targets) ** 2)
+        #MSEW = torch.mean(self.weights.tile( inputs.shape[0], 1) * (inputs - targets) ** 2)
+        MSEW = torch.mean(self.weights * (inputs - targets) ** 2)
         return MSEW
     
 

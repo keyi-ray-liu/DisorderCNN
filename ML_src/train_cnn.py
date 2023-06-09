@@ -9,13 +9,13 @@ if __name__ == '__main__':
 
 
     batch_size = 6
-    n_epochs = 3
+    n_epochs = 2
 
     lr = 0.03
     decay = 0.02
     momentum = 0.9
 
-    weights = [1.0, 1.5, 2.0, 4.0]
+    weights = [4.0]
     # select which set of disorder parameters we want to look at. 
     # For cross comparison down in plot, enter multiple 
     # For function to work properly which_cases always need to be a list

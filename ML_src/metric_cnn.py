@@ -303,6 +303,7 @@ class GSWtorch(MSEWtorch):
 
         print(weights)
         return weights
+    
 
 class Energy(Label):
 
