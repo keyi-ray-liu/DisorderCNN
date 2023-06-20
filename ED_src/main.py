@@ -31,7 +31,10 @@ if __name__ == '__main__':
 
     #print(occdict.shape)
 
-    if mode < 3:
+    if mode == -1:
+        disx, disy, sites = generateDisorder(para) 
+
+    elif mode < 3:
         disx, disy, sites = generateDisorder(para) 
         
         #cases = 1

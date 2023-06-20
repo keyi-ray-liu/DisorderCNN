@@ -1,111 +1,106 @@
 import numpy as np
 from gen import *
+import json
 
 
 def initParameters():
 
-    inputs = np.loadtxt('inp')
+    with open('inp.json', 'r') as f:
+        input = json.load(f)
 
-    if inputs.shape[0] == 7:
-        Lx, num_e, maxcase, lo, hi, mode, sparse = inputs
-        Ly = 1
 
-    elif inputs.shape[0] == 8:
-        Lx, Ly, num_e, maxcase, lo, hi, mode, sparse = inputs 
-        
-    else:
-        print(' Wrong number of overall inputs')
-        exit()
+    Lx = int(input['Lx'])
+    num_e = input['num_e']
+    sparse = int(input['sparse'])
+    mode = int(input['mode'])
+    maxcase = input['maxcase']
+    Ly = int(input['Ly']) if 'Ly' in input else 1
 
-    Lx = int(Lx)
-    Ly = int(Ly)
+    lo = input['lo']
+    hi = input['hi']
+
     L = Lx * Ly
 
-    sparse = int(sparse)
-    mode = int(mode)
-    num_site = 0
-    maxlen = 0
 
+    # mode -1 is time evolution, separate
     # mode 0 is the universal x, y disorder generation, used in testing a new t, lambda combination
     # mode 1 is select site generation, only on x direction, and the rest of the site have minimal disorder. 
-    if mode == 0:
 
-        para_dis = np.loadtxt('para_dis', dtype='str')
+    with open('para_dis.json', 'r') as f:
+        dis = json.load(f)
 
-        if para_dis.shape[0] == 8:
-            tun, cou, a, b,  readdisorder, seed, decay, distype = para_dis
+    tun = dis['tun']
+    cou = dis['cou']
+    a = dis['a']
+    b = dis['b']
+    readdisorder = dis['readdisorder']
+    seed = dis['seed']
+    decay = dis['decay']
+    distype = dis['distype']
 
-        else:
-            print(' Wrong number of inputs. Mode 0. check: tun, cou, a, b,  readdisorder, seed, decay, distype')
-            exit()
 
-    elif mode == 1:
-        # the a, b now refers to the lower and upper limit of the site disorder, a sign is assigned randomly.
+    with open('hamiltonian.json', 'r') as f:
+        ham = json.load(ham)
 
-        para_dis = np.loadtxt('para_dis', dtype='str')
-
-        if para_dis.shape[0] == 10:
-            tun, cou, a, b,  readdisorder, seed, decay, distype, num_site, maxlen = para_dis
-
-        else:
-            print(' Wrong number of inputs. Mode 1. check: tun, cou, a, b,  readdisorder, seed, decay, distype, num_site, maxlen')
-            exit()
-
-    # mode 2 generates all maxlen cases
-    # mode 3 is the interactive mode
-    else:
-
-        para_dis = np.loadtxt('para_dis', dtype='str')
-
-        if para_dis.shape[0] == 9:
-            tun, cou, a, b,  readdisorder, seed, decay, distype, num_site  = para_dis
-
-        else:
-            print(' Wrong number of inputs. Mode 1+. check: tun, cou, a, b,  readdisorder, seed, decay, distype, num_site')
-            exit()
-
-    ham = np.loadtxt('hamiltonian')
-
-    if ham.shape[0] == 10:
-        t, int_ee, int_ne, z, zeta, ex, selfnuc, hopmode, int_range, alltoall = ham
-
-    else:
-        print(' Wrong number of inputs to ham: t, int_ee, int_ne, z, zeta, ex, selfnuc, hopmode, int_range, alltoall')
-        exit()
+    t = ham['t']
+    int_ee = ham['int_ee']
+    int_ne = ham['int_ne']
+    int_range = ham['int_range']
+    z = ham['z']
+    zeta = ham['zeta']
+    ex = ham['ex']
+    selfnuc = ham['selfnuc']
+    alltoall = ham['alltoall']
+    hopmode = ham['hopmode']
 
 
     para = {
-    'L' : L,
-    'Lx': Lx,
-    'Ly': Ly,
-    'num_e' : int(num_e),
-    't': t,
-    'int_ee': int_ee,
-    'int_ne': int_ne,
-    'int_range': int_range,
-    'z': z,
-    'zeta':zeta,
-    'ex': ex,
-    # if-include-nuc-self-int switch, 1 means include
-    'selfnuc': int(selfnuc),
-    'alltoall':int(alltoall),
-    'tun': int(tun),
-    'cou': int(cou),
-    'a': float(a),
-    'b': float(b),
-    'seed': int(seed),
-    'readdisorder': int(readdisorder),
-    'decay': float(decay),
-    'maxcase': int(maxcase),
-    'distype': distype,
-    'Nth eig': [int(lo), int(hi)],
-    # mode controls the generation type. 0 is generation on all sites, 1 is controlled generation on fixed number of sites on singular maxlen, 2 is 1 but on all possible maxlens
-    'mode': mode,
-    'num_site': int(num_site),
-    'maxlen':int(maxlen),
-    'hopmode': int(hopmode),
-    'sparse':sparse}
+        'L' : L,
+        'Lx': Lx,
+        'Ly': Ly,
+        'num_e' : int(num_e),
+        't': t,
+        'int_ee': int_ee,
+        'int_ne': int_ne,
+        'int_range': int_range,
+        'z': z,
+        'zeta':zeta,
+        'ex': ex,
+        # if-include-nuc-self-int switch, 1 means include
+        'selfnuc': int(selfnuc),
+        'alltoall':int(alltoall),
+        'tun': int(tun),
+        'cou': int(cou),
+        'a': float(a),
+        'b': float(b),
+        'seed': int(seed),
+        'readdisorder': int(readdisorder),
+        'decay': float(decay),
+        'maxcase': int(maxcase),
+        'distype': distype,
+        'Nth eig': [int(lo), int(hi)],
+        # mode controls the generation type. 0 is generation on all sites, 1 is controlled generation on fixed number of sites on singular maxlen, 2 is 1 but on all possible maxlens
+        'mode': mode,
+        'num_site': int(dis['num_site']) if 'num_site' in dis else 0,
+        'maxlen':int(dis['maxlen']) if 'maxlen' in dis else 0,
+        'hopmode': int(hopmode),
+        'sparse':sparse
+    }
     
+
+    try:
+        with open('dyna.json', 'r') as f:
+            dyna = json.load(ham)
+
+        para['timestep'] = dyna['timestep']
+        para['start'] = dyna['start']
+        para['end'] = dyna['end']
+
+
+    except FileNotFoundError:
+        pass
+
+
     if mode == 0:
         para['batch'] = para['maxcase']
 
