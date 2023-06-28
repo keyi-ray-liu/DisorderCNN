@@ -1,0 +1,7 @@
+{
+    "timestep": 0.1,
+    "start": 0.0,
+    "end": 50.0,
+    "method": "direct",
+    "gs": 1
+}

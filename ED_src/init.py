@@ -91,6 +91,7 @@ def initParameters():
         with open('dyna.json', 'r') as f:
             dyna = json.load(f)
 
+        para['gs'] = int(dyna['gs'])
         para['timestep'] = dyna['timestep']
         para['start'] = dyna['start']
         para['end'] = dyna['end']

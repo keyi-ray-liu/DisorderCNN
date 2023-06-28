@@ -54,22 +54,24 @@ def time_evolve(para):
     end = para['end']
     timestep = para['timestep']
     num_e = para['num_e']
-    ic = [1, 1]
+    ic = [1, 0]
+    gs = para['gs']
 
-    psi = TE_GS(para, ic)
-
-
-    np.savetxt('te_gs', psi) 
-
-    # currently method is hard coded
+    L = para['L']
+    qe = para['qe']
     S = init(para)
     # generate dictionary for book keeping
     sdict, occdict, _ = initdict(S, para)
+    psi = TE_GS(para, ic)
+    np.savetxt('te_gs', psi) 
 
-    L = para['L']
-    gs_cd = charge_density(psi, occdict, para)
+    if gs:
 
-    gs_cd[L:] = np.zeros( gs_cd.shape[0] - L)
+        gs_cd = charge_density(psi, occdict, para)
+        gs_cd[L:] = np.zeros( gs_cd.shape[0] - L)
+
+    else:
+        gs_cd = np.zeros( L + qe)
     
     # for the moment, disorder is set to 0
     dis = np.zeros((2, L))
@@ -154,7 +156,7 @@ def time_evolve(para):
     mps_consist(raw_comp)
     np.savetxt('cd', res, fmt='%.4f')
     #print(gs_cd)
-    #timeplot(res, para)
+    timeplot(res, para)
 
 def charge_density(psi, occdict, para):
     
@@ -176,7 +178,7 @@ def mps_consist(raw):
     perm = list(range(1, 13)) + [0] + [13]
     idx = np.empty_like(perm)
     idx[perm] = np.arange(len(perm))
-    
+
     raw[:] = raw[:, idx]
     raw = np.concatenate( (zeros, raw, zeros), axis= 1)
 
