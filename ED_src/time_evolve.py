@@ -85,6 +85,7 @@ def time_evolve(para):
     # psi2 = psi
     
     res = []
+    raw_comp = []
     if method == "direct":
 
         M = setMatrix(S, N, dis, sdict,  para)
@@ -98,6 +99,7 @@ def time_evolve(para):
         #     #print(  psi2.conj().transpose().dot(psi2))
         #     #charge_density(psi2, occdict)
 
+            raw_comp.append(cur_cd)
             res.append(cur_cd - gs_cd)
             psi = sparse_linalg.expm_multiply( -1j * timestep * M, psi)
 
@@ -141,15 +143,18 @@ def time_evolve(para):
             cur_cd = np.absolute( ph_overlap.dot(cd) ) ** 2 
             #print( cur_cd)
 
+            raw_comp.append(cur_cd)
             res.append( cur_cd - gs_cd)
             #print( 'phased overlap inner:', np.sum( np.absolute( ph_overlap) ** 2))
             #charge_density(ph_overlap, occdict)
 
     res= np.array(res)
+    raw_comp = np.array(raw_comp)
 
+    mps_consist(raw_comp)
     np.savetxt('cd', res, fmt='%.4f')
     #print(gs_cd)
-    timeplot(res, para)
+    #timeplot(res, para)
 
 def charge_density(psi, occdict, para):
     
@@ -164,6 +169,18 @@ def charge_density(psi, occdict, para):
 
     return cd
 
+def mps_consist(raw):
+
+    zeros = np.zeros( (raw.shape[0], 1))
+
+    perm = list(range(1, 13)) + [0] + [13]
+    idx = np.empty_like(perm)
+    idx[perm] = np.arange(len(perm))
+    
+    raw[:] = raw[:, idx]
+    raw = np.concatenate( (zeros, raw, zeros), axis= 1)
+
+    np.savetxt('expN', raw)
 
 def timeplot(res, para):
 
