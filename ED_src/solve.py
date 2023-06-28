@@ -24,6 +24,7 @@ def solve(M, para):
         #print('range of eigenvalues', ranges)
         w, v = eigh(M, subset_by_index=ranges)
     
+    print(w)
     print('diag time {}'.format(time.time()- start))
 
     return w, v

@@ -1,11 +1,13 @@
 import numpy as np
 import copy
+from itertools import combinations
 
 
 def hamiltonian(s, dis, para):
     L, t, int_ee, int_ne, z, zeta, ex, selfnuc = para['L'],  para['t'], para['int_ee'],para['int_ne'], para['z'], para['zeta'], para['ex'],  para['selfnuc']
     Lx, Ly = para['Lx'], para['Ly']
 
+    num_e = para['num_e']
     # int_range only applies to ee and ne int
     int_range = para['int_range']
     tun, cou, decay = para['tun'], para['cou'], para['decay']
@@ -13,6 +15,10 @@ def hamiltonian(s, dis, para):
     allee, allne = 0, 0
     hopmode = para['hopmode']
     alltoall = para['alltoall']
+    qe_energy = para['qe_energy']
+    qe = para['qe']
+    qe_dis = para['qe_dis']
+    dp = para['dp']
 
     def checkHopping(loc):
         # set up the NN matrix
@@ -206,6 +212,47 @@ def hamiltonian(s, dis, para):
         # self nuclear interaction condition
         return total_ne if selfnuc else total_ne - int_ne * z / zeta * s[loc]
 
+
+    def add_qe():
+        
+        qe_pot = []
+        states = []
+
+        qe_state = s[L:]
+        chain_state = s[:L]
+        # add diagonal energies
+
+        qe_pot.append( qe_state.count(1) * qe_energy)
+        states.append( s)
+
+        # add off-diagonal energies
+        
+        # flip 1, 2, ..., N qe's 
+        for activate_qe in range(1, qe ):
+            
+            # flip all possile x num
+            for comb in combinations( range(qe), activate_qe):
+
+                new_qe_state = copy.copy(qe_state)
+                new_qe_pot = 0
+
+                #res = 0
+                for ind in comb:
+                    new_qe_state[ind] = int(not qe_state[ind])
+
+                    #calculate energy
+                    np_s = np.array(chain_state)
+                    r_vec = np.abs( np.arange(L) - qe_dis[ind])
+                    new_qe_pot += np.sum(dp[ind] * (np_s - num_e/L) * ( r_vec / ( r_vec **3 + zeta)))
+
+
+                qe_pot.append( new_qe_pot)
+                states.append( chain_state + new_qe_state)
+        
+        return qe_pot, states
+
+
+
     for loc in range(L):
 
         # the hopping part. Set up the changed basis states
@@ -224,9 +271,16 @@ def hamiltonian(s, dis, para):
 
     #print(allee, allne)
 
+    # onsite interactions
     allnewstates[0].append(allee + allne)
-
     allnewstates[1].append(s)
+
+    if qe:
+
+        qe_pot, qe_state = add_qe()
+        for j in range(len(qe_pot)):
+            allnewstates[0].append(qe_pot[j])
+            allnewstates[1].append(qe_state[j])
 
     return allnewstates
 

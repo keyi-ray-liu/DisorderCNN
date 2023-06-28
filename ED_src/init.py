@@ -40,7 +40,7 @@ def initParameters():
 
 
     with open('hamiltonian.json', 'r') as f:
-        ham = json.load(ham)
+        ham = json.load(f)
 
     t = ham['t']
     int_ee = ham['int_ee']
@@ -52,7 +52,6 @@ def initParameters():
     selfnuc = ham['selfnuc']
     alltoall = ham['alltoall']
     hopmode = ham['hopmode']
-
 
     para = {
         'L' : L,
@@ -90,16 +89,32 @@ def initParameters():
 
     try:
         with open('dyna.json', 'r') as f:
-            dyna = json.load(ham)
+            dyna = json.load(f)
 
         para['timestep'] = dyna['timestep']
         para['start'] = dyna['start']
         para['end'] = dyna['end']
-
+        para['method'] = dyna['method']
 
     except FileNotFoundError:
-        pass
 
+        if mode <0:
+            raise ValueError('no dyna para found!')
+        
+        else:
+            pass
+
+    try:
+        with open('para_qe.json', 'r') as f:
+            para_qe = json.load(f)
+
+        para['qe'] = int(para_qe['qe'])
+        para['dp'] = para_qe['dp']
+        para['qe_energy'] = para_qe['qe_energy']
+        para['qe_dis'] = para_qe['qe_dis']
+
+    except FileNotFoundError:
+        para['qe'] = 0
 
     if mode == 0:
         para['batch'] = para['maxcase']
@@ -116,14 +131,17 @@ def initParameters():
 def init(para):
     L = para['L']
     num_e = para['num_e']
-    states = generateState(L, num_e)
+    qe = para['qe']
+    states = generateState(L, num_e, qe)
     return states
 
-def initdict(S):
+def initdict(S, para):
     num_state = len(S)
-    L = len(S[0])
+    L = para['L']
+    qe = para['qe']
+    num_e = para['num_e']
 
-    occdict = np.zeros( (num_state, L) )
+    occdict = np.zeros( (num_state, L + qe) )
     balancestate = np.zeros( num_state)
     sdict = {}
 
@@ -134,8 +152,9 @@ def initdict(S):
             #print(i, j)
             occdict[ i, j ] = occ
 
-        if sum( state[:L//2]) == 3:
+        if sum( state[:L//2]) == num_e/2:
             balancestate[i] = 1
 
+    np.savetxt('occdict', occdict, fmt='%i')
     #print(balancestate)
     return sdict, occdict, balancestate

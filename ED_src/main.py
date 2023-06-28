@@ -12,6 +12,7 @@ from solve import *
 from utils import *
 from interactive import *
 from plots import *
+from time_evolve import *
 
 
 if __name__ == '__main__':
@@ -25,14 +26,13 @@ if __name__ == '__main__':
 
     # Here we try using a randomly generated set of occupation configuration
     S = init(para)
-
     # generate dictionary for book keeping
-    sdict, occdict, balancestate = initdict(S)
+    sdict, occdict, balancestate = initdict(S, para)
 
     #print(occdict.shape)
 
     if mode == -1:
-        disx, disy, sites = generateDisorder(para) 
+        time_evolve(para)
 
     elif mode < 3:
         disx, disy, sites = generateDisorder(para) 

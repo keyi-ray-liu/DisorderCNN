@@ -1,14 +1,25 @@
 import numpy as np
 from collections import defaultdict
 
-def generateState(L, num_e):
+def generateState(L, num_e, qe):
     if L == num_e:
         return [[1] * num_e]
     if L == 0:
         return [[]]
     if num_e == 0:
         return [[0] * L]
-    return [ [0]  + state for state in generateState(L - 1, num_e)] + [ [ 1] + state for state in generateState(L - 1, num_e -1)]
+    full =  [ [0]  + state for state in generateState(L - 1, num_e, 0)] + [ [ 1] + state for state in generateState(L - 1, num_e -1, 0)]
+
+    if not qe:
+        return full
+
+    for _ in range(qe):
+        full = [state + [0] for state in full] + [state + [1] for state in full]
+
+    return full
+        
+
+    
 
 def generateDisorder(para):
 

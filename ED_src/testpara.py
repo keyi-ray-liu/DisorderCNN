@@ -25,7 +25,7 @@ if __name__ == '__main__':
     S = init(para)
 
     # generate dictionary for book keeping
-    sdict, occdict, balancestate = initdict(S)
+    sdict, occdict, balancestate = initdict(S, para)
 
     disx, disy, sites = generateDisorder(para) 
     energy = np.loadtxt('energy')
