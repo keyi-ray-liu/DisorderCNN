@@ -153,7 +153,7 @@ def time_evolve(para):
     res= np.array(res)
     raw_comp = np.array(raw_comp)
 
-    mps_consist(raw_comp)
+    mps_consist(raw_comp, para)
     np.savetxt('cd', res, fmt='%.4f')
     #print(gs_cd)
     timeplot(res, para)
@@ -171,11 +171,11 @@ def charge_density(psi, occdict, para):
 
     return cd
 
-def mps_consist(raw):
+def mps_consist(raw, para):
 
     zeros = np.zeros( (raw.shape[0], 1))
-
-    perm = list(range(1, 13)) + [0] + [13]
+    L = para['L']
+    perm = list(range(1, L + 1)) + [0] + [L + 1]
     idx = np.empty_like(perm)
     idx[perm] = np.arange(len(perm))
 
