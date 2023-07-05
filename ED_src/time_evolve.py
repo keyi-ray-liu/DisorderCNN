@@ -133,7 +133,11 @@ def time_evolve(para):
             np.savetxt('full_energy', energies)
 
         # calculate the overlap vector between all eigenv and initial state
-        overlap = psi.dot( v)
+
+        for k in (10, 50, 100, 200, 300):
+            overlap = psi.dot( v)
+
+            print(k, np.sum( np.abs(overlap) ** 2))
 
         # calculate the cd for each energy eigenstate
         cd = v.transpose().dot(occdict)
