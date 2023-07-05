@@ -16,6 +16,9 @@ def setMatrix(S, N, dis, sdict, para):
 
         #print(cnt)
 
+    frac = N // 100
+    cnt = 0
+
     if sparse:
 
         matrix_file = 'M.npz'
@@ -28,6 +31,11 @@ def setMatrix(S, N, dis, sdict, para):
             val = []
 
             for i, state in enumerate(S):
+
+                if i % frac == 0:
+                    print('setup complete {}%'.format(cnt))
+                    cnt += 1
+
                 newstates = hamiltonian(state, dis, para)
                 for j, newstate  in enumerate(newstates[1]):
                     row += [i]
@@ -47,6 +55,11 @@ def setMatrix(S, N, dis, sdict, para):
             M = np.zeros((N, N))
 
             for i, state in enumerate(S):
+
+                if i % frac == 0:
+                    print('setup complete {}%'.format(cnt))
+                    cnt += 1
+            
                 newstates = hamiltonian(state, dis, para)
                 for j, newstate  in enumerate(newstates[1]):
                     M[i, sdict[str(newstate)]] += newstates[0][j]
