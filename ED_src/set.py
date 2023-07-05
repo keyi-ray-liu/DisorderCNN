@@ -1,7 +1,8 @@
 from collections import defaultdict
 from hamiltonian import *
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, load_npz, save_npz
 from scipy.special import comb
+import os
 
 def setMatrix(S, N, dis, sdict, para):
 
@@ -17,31 +18,43 @@ def setMatrix(S, N, dis, sdict, para):
 
     if sparse:
 
-        row = []
-        col = []
-        val = []
+        matrix_file = 'M.npz'
+        if os.path.exists(matrix_file):
+            M = load_npz(matrix_file)
 
-        for i, state in enumerate(S):
-            newstates = hamiltonian(state, dis, para)
-            for j, newstate  in enumerate(newstates[1]):
-                row += [i]
-                col += [sdict[str(newstate)]]
-                val += [newstates[0][j]]
+        else:
+            row = []
+            col = []
+            val = []
 
-        M = csr_matrix((val, (row, col)), shape=(N, N))
+            for i, state in enumerate(S):
+                newstates = hamiltonian(state, dis, para)
+                for j, newstate  in enumerate(newstates[1]):
+                    row += [i]
+                    col += [sdict[str(newstate)]]
+                    val += [newstates[0][j]]
+
+            M = csr_matrix((val, (row, col)), shape=(N, N))
+            save_npz(matrix_file, M)
 
     else:
-        M = np.zeros((N, N))
 
-        for i, state in enumerate(S):
-            newstates = hamiltonian(state, dis, para)
-            for j, newstate  in enumerate(newstates[1]):
-                M[i, sdict[str(newstate)]] += newstates[0][j]
+        matrix_file = 'M'
+        if os.path.exists(matrix_file):
+            M = np.loadtxt(matrix_file)
 
-        np.savetxt('M', M, fmt='%.3f')
-        
-        #checkdiag(M, para)
-        checksparce()
+        else:
+            M = np.zeros((N, N))
+
+            for i, state in enumerate(S):
+                newstates = hamiltonian(state, dis, para)
+                for j, newstate  in enumerate(newstates[1]):
+                    M[i, sdict[str(newstate)]] += newstates[0][j]
+
+            np.savetxt('M', M, fmt='%.3f')
+            
+            #checkdiag(M, para)
+            checksparce()
     
     return M
    

@@ -6,7 +6,7 @@ from init import *
 from copy import deepcopy
 import scipy.linalg as dense_linalg
 import scipy.sparse.linalg as sparse_linalg
-from scipy.linalg import eigh
+from scipy.sparse.linalg import eigsh
 import os
 from matplotlib.animation import FuncAnimation
 import matplotlib.animation as animation
@@ -53,7 +53,6 @@ def time_evolve(para):
     start = para['start']
     end = para['end']
     timestep = para['timestep']
-    num_e = para['num_e']
     ic = [1, 0]
     gs = para['gs']
 
@@ -62,11 +61,15 @@ def time_evolve(para):
     S = init(para)
     # generate dictionary for book keeping
     sdict, occdict, _ = initdict(S, para)
-    psi = TE_GS(para, ic)
-    np.savetxt('te_gs', psi) 
+
+    if os.path.exists('te_gs'):
+        psi = np.loadtxt('te_gs')
+
+    else:
+        psi = TE_GS(para, ic)
+        np.savetxt('te_gs', psi) 
 
     if gs:
-
         gs_cd = charge_density(psi, occdict, para)
         gs_cd[L:] = np.zeros( gs_cd.shape[0] - L)
 
@@ -88,6 +91,7 @@ def time_evolve(para):
     
     res = []
     raw_comp = []
+
     if method == "direct":
 
         M = setMatrix(S, N, dis, sdict,  para)
@@ -110,7 +114,6 @@ def time_evolve(para):
     # in this case we want the full spectrum
     elif method == "eigen":
         
-        # override sparse to false
 
         if os.path.exists('full_eigen'):
 
@@ -118,10 +121,13 @@ def time_evolve(para):
             v = np.loadtxt('full_eigen')
 
         else:
-            para["sparse"] = 0
+            #only solves for 300 eigenstates
+            # default to sparse
+            para['sparse'] = 1
+            k = 300
             M = setMatrix(S, N, dis, sdict,  para)
             # rememer the structure of the output eigv is (M x N), where N <= M
-            energies, v = eigh(M)
+            energies, v = eigsh(M, k)
 
             np.savetxt('full_eigen', v)
             np.savetxt('full_energy', energies)
