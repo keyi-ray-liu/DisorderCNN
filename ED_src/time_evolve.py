@@ -35,7 +35,7 @@ def TE_GS(para, ic):
     #print('x Disorder: {}\n y Disorder: {}'.format(dis[0], dis[1]))
     # total number of states
     N = len(S)
-    M = setMatrix(S, N, dis, sdict,  new)
+    M = setMatrix(S, N, dis, sdict,  new, tag='GS')
     _, eigv = solve(M, new)
 
     # set the correct index for outer product
@@ -94,7 +94,7 @@ def time_evolve(para):
 
     if method == "direct":
 
-        M = setMatrix(S, N, dis, sdict,  para)
+        M = setMatrix(S, N, dis, sdict,  para, tag='QE')
 
         for t in np.arange(start, end, timestep):
             print(t)
@@ -125,7 +125,7 @@ def time_evolve(para):
             # default to sparse
             para['sparse'] = 1
             k = 300
-            M = setMatrix(S, N, dis, sdict,  para)
+            M = setMatrix(S, N, dis, sdict,  para, tag='QE')
             # rememer the structure of the output eigv is (M x N), where N <= M
             energies, v = eigsh(M, k)
 
@@ -134,13 +134,11 @@ def time_evolve(para):
 
         # calculate the overlap vector between all eigenv and initial state
 
-        for k in (10, 50, 100, 200, 300):
-            overlap = psi.dot( v)
+        for k in list(range(1, 10)) + [10, 50, 100, 200, 300]:
+            temp = psi.dot( v[:, :k])
+            print(k, np.sum( np.abs(temp) ** 2))
 
-            print(k, np.sum( np.abs(overlap) ** 2))
-
-        # calculate the cd for each energy eigenstate
-        cd = v.transpose().dot(occdict)
+        overlap = psi.dot(v)
 
         #normalization = np.repeat( np.sqrt(  np.sum( np.abs(cd) **2 , axis=1) / num_e ), cd.shape[-1]).reshape( cd.shape)
         #cd = cd / normalization
@@ -152,7 +150,9 @@ def time_evolve(para):
 
             #print(t)
             ph_overlap = np.exp(-1j * energies * t) * overlap
-            cur_cd = np.absolute( ph_overlap.dot(cd) ) ** 2 
+            psi = v.dot(ph_overlap)
+
+            cur_cd = charge_density(psi, occdict, para)
             #print( cur_cd)
 
             raw_comp.append(cur_cd)

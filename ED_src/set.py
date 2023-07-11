@@ -4,7 +4,7 @@ from scipy.sparse import csr_matrix, load_npz, save_npz
 from scipy.special import comb
 import os
 
-def setMatrix(S, N, dis, sdict, para):
+def setMatrix(S, N, dis, sdict, para, tag=''):
 
     sparse = para['sparse'] 
 
@@ -21,7 +21,7 @@ def setMatrix(S, N, dis, sdict, para):
 
     if sparse:
 
-        matrix_file = 'M.npz'
+        matrix_file = 'M{}.npz'.format(tag)
         if os.path.exists(matrix_file):
             M = load_npz(matrix_file)
 
