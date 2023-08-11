@@ -7,7 +7,7 @@ import os
 def setMatrix(S, N, dis, sdict, para, tag=''):
 
     sparse = para['sparse'] 
-
+    readM = para["readM"]
     def checksparce():
         
         cnt = defaultdict(int)
@@ -22,7 +22,7 @@ def setMatrix(S, N, dis, sdict, para, tag=''):
     if sparse:
 
         matrix_file = 'M{}.npz'.format(tag)
-        if os.path.exists(matrix_file):
+        if os.path.exists(matrix_file) and readM:
             M = load_npz(matrix_file)
 
         else:
@@ -48,7 +48,7 @@ def setMatrix(S, N, dis, sdict, para, tag=''):
     else:
 
         matrix_file = 'M'
-        if os.path.exists(matrix_file):
+        if os.path.exists(matrix_file) and readM:
             M = np.loadtxt(matrix_file)
 
         else:

@@ -137,6 +137,12 @@ def generateDisorder(para):
                     disx[b][ sites[b][-1] ] = newdisx [b][ -1]
 
 
+    if len(disx.shape) == 1:
+        disx = np.reshape( disx, (1, disx.shape[0]))
+
+    if len(disy.shape) == 1:
+        disy = np.reshape( disy, (1, disy.shape[0]))
+
     return disx, disy, sites
 
 
