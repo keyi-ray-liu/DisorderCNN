@@ -8,18 +8,18 @@ from cnn_utils import *
 if __name__ == '__main__':
 
 
-    batch_size = 6
-    n_epochs = 2
+    batch_size = 50
+    n_epochs = 5
 
-    lr = 0.03
+    lr = 0.02
     decay = 0.02
-    momentum = 0.9
+    momentum = 0.8
 
     weights = [4.0]
     # select which set of disorder parameters we want to look at. 
     # For cross comparison down in plot, enter multiple 
     # For function to work properly which_cases always need to be a list
-    which_cases = [0.05]
+    data_descriptions = ['max0.4']
     
     #label = Gpi(if_sort = 1)
     internal_label = int(sys.argv[1])
@@ -27,12 +27,11 @@ if __name__ == '__main__':
     
 
     for weight in weights:
-        for i, case in enumerate(which_cases):
+        for i, data_description in enumerate(data_descriptions):
             
             ID = str(int(time.time()/60))
-            label = select_label(internal_label, ID)
-            description = "case{}".format(case)
-            label.set_data_dir(case_id=case)
+            label : Label = select_label(internal_label, ID)
+            label.set_data_dir(data_description=data_description)
 
             if isinstance(label, GSGap_GSW_MSE):
                 label.set_weights(weight)
@@ -46,7 +45,7 @@ if __name__ == '__main__':
 
             trainerr, validerr = label.train_model(Train, Val, lr=lr, weight_decay = decay, momentum = momentum, n_epochs=n_epochs)
 
-            label.set_model_dir(description = description)
+            label.set_model_dir()
         
             parameter = {
                 'batch_size' : batch_size,
@@ -57,7 +56,9 @@ if __name__ == '__main__':
                 'model' : label.get_model_name(),
                 'label' : label.get_label_name(),
                 'internal_label' : internal_label,
-                'id' : label.get_id()
+                'id' : label.get_id(),
+                'trained_on': data_description,
+                'activation' : label.get_activation()
             }
 
             if isinstance(label, GSGap_GSW_MSE):

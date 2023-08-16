@@ -12,6 +12,21 @@ class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
 
+
+
+def set_activation(activation_func):
+    if activation_func == 'ReLU':
+        return nn.ReLU()
+    
+    elif activation_func == 'tanh':
+        return nn.Tanh()
+    
+    elif activation_func == 'Sig':
+        return nn.Sigmoid()
+    
+    else:
+        raise ValueError('Not Recognized act funct')
+
 class GPICNN(nn.Module):
 
     def __init__(self):
@@ -84,10 +99,10 @@ class Energy2DCNN(nn.Module):
     
 
 class Energy1DCNNComplex(nn.Module):
-    def __init__(self, outputdim):
+    def __init__(self, inputdim=2, outputdim = 1):
         super(Energy1DCNNComplex, self).__init__()
         # TODO initialize model layers here
-        self.cnn1 = nn.Conv1d(2, 512, kernel_size = 3, padding=1)
+        self.cnn1 = nn.Conv1d(inputdim, 512, kernel_size = 3, padding=1)
         self.cnn2 = nn.Conv1d(512, 1024, kernel_size = 3, padding = 1)
         self.cnn3 = nn.Conv1d(1024, 2048, kernel_size=3, padding=1)
         self.relu = nn.ReLU()
@@ -123,24 +138,15 @@ class Energy1DCNNComplex(nn.Module):
         return energy
     
 
-class Energy1DCNN(nn.Module):
+class Energy1DCNN( nn.Module):
 
-    def set_activation(self, activation_func):
-        if activation_func == 'ReLU':
-            return nn.ReLU()
         
-        elif activation_func == 'tanh':
-            return nn.Tanh()
-        
-        else:
-            raise ValueError('Not Recognized act funct')
-        
-    def __init__(self, outputdim = 1, activation_func='ReLU'):
+    def __init__(self, inputdim= 2, outputdim = 1, activation_func='ReLU'):
         super(Energy1DCNN, self).__init__()
         # TODO initialize model layers here
-        self.cnn1 = nn.Conv1d(2, 512, kernel_size = 3, padding=1)
+        self.cnn1 = nn.Conv1d(inputdim, 512, kernel_size = 3, padding=1)
         self.cnn2 = nn.Conv1d(512, 512, kernel_size = 3, padding = 1)
-        self.activation = self.set_activation(activation_func)
+        self.activation = set_activation(activation_func)
         self.flatten = Flatten()
         self.pool = nn.MaxPool1d(2)
         self.dropout = nn.Dropout(p=0.5)
@@ -169,6 +175,42 @@ class Energy1DCNN(nn.Module):
 
 
         return energy
+
+class Energy1DCNNSimple(nn.Module):
+
+        
+    def __init__(self, inputdim = 2, outputdim = 1, activation_func='ReLU'):
+        super(Energy1DCNNSimple, self).__init__()
+        # TODO initialize model layers here
+        self.cnn1 = nn.Conv1d(inputdim, 64, kernel_size = 3)
+        self.activation = set_activation(activation_func)
+        self.flatten = Flatten()
+        self.pool = nn.MaxPool1d(2)
+        self.dropout = nn.Dropout(p=0.5)
+        self.hidden = nn.Linear( 5*64 , 256)
+        self.hidden2 = nn.Linear( 256, 256)
+        self.out = nn.Linear(256, outputdim)
+
+    def forward(self, x):
+
+        x = self.cnn1(x) # size 10
+        x = self.activation(x)
+        x = self.pool(x) # size 5
+        x = self.flatten(x)
+        x = self.hidden(x)
+        x = self.activation(x)
+        x = self.hidden2(x)
+        x = self.activation(x)
+        x = self.dropout(x)
+        x = self.out(x)
+        x = self.activation(x)
+
+        energy = x
+        # ipr = x[:, 10:]
+
+
+        return energy
+
 
 
 class EnergyForward(nn.Module):

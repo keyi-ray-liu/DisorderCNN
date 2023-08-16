@@ -8,8 +8,8 @@ import json
 
 class Label():
 
-    def __init__(self, name, ID):
-        self.name = name
+    def __init__(self, metric_name, ID):
+        self.metric_name = metric_name
         self.label_name = self.__class__.__name__
         self.id = ID
         self.init_model()
@@ -25,17 +25,16 @@ class Label():
         if not os.path.exists(cwd):
             os.mkdir(cwd)
         
-        model_name = self.model.__class__.__name__
-        self.full_model_name = '-'.join([model_name, self.label_name, str(description), self.id , '.pt'])
-        self.full_para_name = '-'.join([model_name, self.label_name, str(description), self.id, '.json'])
-        self.model_dir = cwd + self.full_model_name
-        self.para_dir = cwd + self.full_para_name
+        self.model_name  = self.model.__class__.__name__
+        self.full_id = '-'.join([self.model_name, self.label_name, str(description), self.id ])
+        self.model_dir = cwd + self.full_id + '.pt'
+        self.para_dir = cwd + self.full_id + '.json'
 
     def get_label_name(self):
         return self.label_name
     
     def get_model_name(self):
-        return self.model.__class__.__name__
+        return self.model_name
     
     def get_id(self):
         return self.id
@@ -50,6 +49,13 @@ class Label():
 
         return X_train, y_train, X_val, y_val, X_test, y_test
     
+    def get_model_weights(self):
+
+        print(self.model)
+        print(self.model.cnn1.weight)
+        print(self.model.hidden.weight)
+        print(self.model.hidden2.weight)
+
     def process_x(self):
         return NotImplementedError("label must define their x process method")
     
@@ -87,19 +93,19 @@ class Label():
 
 class Ipr(Label):
 
-    def __init__(self, name='gpi', if_sort=0):
-        self.name = name
+    def __init__(self, metric_name='gpi', if_sort=0):
+        self.metric_name = metric_name
         self.if_sort = if_sort
 
 class Gpi(Label):
 
-    def __init__(self, name='gpi', if_sort=0):
-        self.name = name
+    def __init__(self, metric_name='gpi', if_sort=0):
+        self.metric_name = metric_name
         self.if_sort = if_sort
 
-    def set_data_dir(self, case_id='0'): 
+    def set_data_dir(self, data_description='0'): 
 
-        cwd = os.getcwd() + '/batch{}/'.format(str(case_id))
+        cwd = os.getcwd() + '/batch-{}/'.format(str(data_description))
         if not os.path.exists(cwd):
             os.mkdir(cwd)
         
@@ -124,6 +130,19 @@ class CNNDis(Label):
         dis[:, 1, :] = disy
 
         return dis
+
+class CNNxOnlyDis(Label):
+
+    def process_x(self):
+
+        dir = self.data_dir
+
+        disx = np.loadtxt(dir + 'disx')
+        
+        dis = np.zeros( (disx.shape[0], 1, disx.shape[1]))
+        dis[:, 0, :] = disx
+
+        return dis
     
 class NearestNeighborDis(Label):
 
@@ -143,7 +162,7 @@ class GSGap(Label):
     def process_y(self):
 
         dir = self.data_dir
-        key = self.name
+        key = self.metric_name
         cutoff = self.cutoff
 
         out = dir + key + 'cutoff{}gsgap'.format(cutoff)
@@ -160,13 +179,42 @@ class GSGap(Label):
             np.savetxt(out, arr)
 
         return arr
+
+class GSAvgGap(Label):
+
+    def process_y(self):
+
+        dir = self.data_dir
+        key = self.metric_name
+        cutoff = self.cutoff
+
+        out = dir + key + 'cutoff{}gsavggap'.format(cutoff)
+
+        if os.path.exists(out):
+            arr = np.loadtxt( out)
+
+        else:
+            arr = np.loadtxt(dir + key)
+            arr = arr[:, :cutoff]
+            arr = arr - np.reshape( np.repeat(arr[:, 0], arr.shape[-1]), arr.shape)
+
+            raw_ref = np.loadtxt('ref_energy')[:cutoff]
+            ref = np.reshape(np.tile( raw_ref - raw_ref[0] , (1, arr.shape[0])), arr.shape)
+
+            arr = arr[:, 1:] - ref[:, 1:]
+
+            np.savetxt(out, arr)
+
+        return arr
+    
+
     
 class AllGap(Label):
 
     def process_y(self):
 
         dir = self.data_dir
-        key = self.name
+        key = self.metric_name
         cutoff = self.cutoff
 
         out = dir + key + 'cutoff{}allgap'.format(cutoff)
@@ -307,14 +355,18 @@ class GSWtorch(MSEWtorch):
 
 class Energy(Label):
 
-    def __init__(self, ID, cutoff=30):
+    def __init__(self, ID, cutoff=30, activation_func="ReLU"):
         self.cutoff = cutoff
         self.output = cutoff - 1
+        self.activation_func = activation_func
         super(Energy, self).__init__('energy', ID)
-        
-    def set_data_dir(self, case_id='0'): 
+    
+    def get_activation(self):
+        return self.activation_func
+    
+    def set_data_dir(self, data_description='0'): 
 
-        cwd = os.getcwd() + '/batch{}/'.format(str(case_id))
+        cwd = os.getcwd() + '/batch-{}/'.format(str(data_description))
         if not os.path.exists(cwd):
             os.mkdir(cwd)
         
@@ -374,7 +426,7 @@ class NearestN_GSGap_MAPE(Energy, NearestNeighborDis, GSGap, MAPEtorch):
 class GSGap_MSE(Energy, CNNDis, GSGap, MSEtorch):
 
     def init_model(self):
-        self.model = Energy1DCNN(outputdim = self.output)
+        self.model = Energy1DCNN(outputdim = self.output, activation_func=self.activation_func)
 
 class GSGap_GSW_MSE(Energy, CNNDis, GSGap, GSWtorch):
     
@@ -384,3 +436,23 @@ class GSGap_GSW_MSE(Energy, CNNDis, GSGap, GSWtorch):
     def set_model_dir(self, description=''):
         description = 'GSweight' + str(self.weights) + str(description)
         return super(GSGap_GSW_MSE, self).set_model_dir(description)
+
+class GSGap_MSE_Simple(Energy, CNNDis, GSGap, MSEtorch):
+
+    def init_model(self):
+        self.model = Energy1DCNNSimple(outputdim = self.output, activation_func=self.activation_func)
+
+class GSAvgGap_MSE(Energy, CNNDis, GSAvgGap, MSEtorch):
+
+    def init_model(self):
+        self.model = Energy1DCNN(outputdim = self.output, activation_func=self.activation_func)
+
+class GSAvgGap_MSE_Simple(Energy, CNNDis, GSAvgGap, MSEtorch):
+
+    def init_model(self):
+        self.model = Energy1DCNNSimple(outputdim = self.output, activation_func=self.activation_func)
+
+class GSGapXonly_MSE_Simple(Energy, CNNxOnlyDis, GSGap, MSEtorch):
+
+    def init_model(self):
+        self.model = Energy1DCNNSimple(inputdim = 1, outputdim = self.output, activation_func=self.activation_func)

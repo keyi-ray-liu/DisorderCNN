@@ -30,28 +30,38 @@ class Energy_multi_processor():
     def get_parameters(self):
         print(self.parameters)
 
-    def visualize_pred(self, case):
+    def extreme_test(self):
+
+        X_test = 500 * np.random.uniform( -1, 1, (500, 1, 12))
+        y_test = np.zeros((500, 19))
+
+        return X_test, y_test
+
+
+    def visualize_pred(self, data_description):
         
         row, col = 2, 5
         s = 15
         inds = []
         sample = row * col
-        plot_dir = os.getcwd() + '/plots/' + '_'.join([ parameter['label'] for parameter in self.parameters ]) + '.png'
+        plot_dir = os.getcwd() + '/plots/' + '_'.join([ parameter['label'] for parameter in self.parameters ]) + '_'.join([ parameter['id'] for parameter in self.parameters ]) + '.png'
         fig, ax = plt.subplots( row,  col, figsize=( 4 * col, 5 * row))
 
         for i, parameter in enumerate(self.parameters):
             
             label = select_label(parameter['internal_label'], parameter['id'])
-            description = "case{}".format(case)
 
             if isinstance(label,GSGap_GSW_MSE ):
                 label.set_weights(parameter['weight'])
 
-            label.set_data_dir(case_id=case)
-            label.set_model_dir(description=description)
+            label.set_data_dir(data_description=data_description)
+            label.set_model_dir()
             _, _, _, _, X_test, y_test = label.load_data()
             
+            #X_test , y_test = self.extreme_test()
+
             label.import_model()
+            label.get_model_weights()
             y_pred = label.get_pred(X_test)
 
             if inds == []:
@@ -63,11 +73,21 @@ class Energy_multi_processor():
             x = np.arange(1, y_pred.shape[-1] + 1)
             cnt = 0
 
+            if isinstance(label,GSGap_GSW_MSE ):
+                label_name = parameter['weight']
+
+            else:
+                label_name = 'pred'
+
             for i in range(row):
                 for j in range(col):
-
-                    ax[i][j].scatter(x, pred[cnt], label=parameter['weight'], s=s)
-
+                    
+                    y = pred[cnt]
+                    ax[i][j].scatter(x, y, label=label_name, s=s)
+                    
+                    print(cnt)
+                    print(y)
+                    
                     cnt += 1
 
         cnt = 0
@@ -105,9 +125,13 @@ def select_label( arg, ID):
         0: GSGap_MAPE(ID),
         1: AllGap_MAPE(ID),
         2: NearestN_GSGap_MAPE(ID),
-        3: GSGap_MSE(ID),
         4: GSGap_GSW_MSE(ID),
-        5: AllGap_MSE(ID)
+        5: AllGap_MSE(ID),
+        6: GSGap_MSE(ID, cutoff=20, activation_func='ReLU'),
+        7: GSGap_MSE_Simple(ID, cutoff=2),
+        8: GSAvgGap_MSE(ID, cutoff=20),
+        9: GSAvgGap_MSE_Simple(ID, cutoff=20),
+        10: GSGapXonly_MSE_Simple(ID, cutoff=20)
     }
     
     try:
@@ -132,35 +156,13 @@ def compare(y_pred, y_test):
     res = Counter(res)
     hist(res)
 
-def single_label( label :Label, **kwargs):
-
-    case = kwargs.pop('case')
-    
-    if isinstance(label, GSGap_GSW_MSE):
-        weight = kwargs.pop('weight')
-        label.set_weights(weight)
-
-    description = "case{}".format(case)
-    label.set_data_dir(case_id =case)
-    label.set_model_dir(description=description)
-    label.set_plot_dir(description=description)
-
-    _, _, _, _, X_test, y_test = label.load_data()
-    
-    label.import_model()
-    y_pred = label.get_pred(X_test)
-    
-    label.visualize_pred(y_pred, y_test)
-    compare(y_pred, y_test)
-
-
-def multi_label( inputs, case):
+def multi_label( inputs, data_description=''):
 
     # get test data set. Has to be on the same data set, so
     processor = Energy_multi_processor(inputs)
 
     #processor.get_parameters()
-    processor.visualize_pred(case)
+    processor.visualize_pred(data_description)
 
 
 

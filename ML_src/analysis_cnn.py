@@ -11,13 +11,11 @@ if __name__ == '__main__':
     # select which set of disorder parameters we want to look at. 
     # For cross comparison down in plot, enter multiple 
     # For function to work properly which_cases always need to be a list
-    which_cases = [0.05]
+    data_descriptions = ['full-max0.05']
 
     # inputs will be all the file names for the paras for the labels waiting to be analyzed
     input = sys.argv[1:]
 
-    weight = 1.0
-
-    for i, case in enumerate(which_cases):
+    for i, data_description in enumerate(data_descriptions):
         
-        multi_label(input, case=case)
+        multi_label(input, data_description=data_description)
