@@ -70,6 +70,7 @@ class Energy_multi_processor():
             pred = y_pred[inds]
             ref = y_test[inds]
 
+            avg = label.get_y_avg()
             x = np.arange(1, y_pred.shape[-1] + 1)
             cnt = 0
 
@@ -84,6 +85,7 @@ class Energy_multi_processor():
                     
                     y = pred[cnt]
                     ax[i][j].scatter(x, y, label=label_name, s=s)
+                    ax[i][j].scatter(x, avg, label=label_name+'_train_avg', s=s)
                     
                     print(cnt)
                     print(y)
@@ -131,7 +133,8 @@ def select_label( arg, ID):
         7: GSGap_MSE_Simple(ID, cutoff=2),
         8: GSAvgGap_MSE(ID, cutoff=20),
         9: GSAvgGap_MSE_Simple(ID, cutoff=20),
-        10: GSGapXonly_MSE_Simple(ID, cutoff=20)
+        10: GSGapXonly_MSE_Simple(ID, cutoff=20),
+        11: GS2D_MSE(ID)
     }
     
     try:

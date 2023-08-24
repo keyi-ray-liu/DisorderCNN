@@ -11,7 +11,7 @@ if __name__ == '__main__':
     # select which set of disorder parameters we want to look at. 
     # For cross comparison down in plot, enter multiple 
     # For function to work properly which_cases always need to be a list
-    data_descriptions = ['full-max0.05']
+    data_descriptions = ['4x4-0.3min']
 
     # inputs will be all the file names for the paras for the labels waiting to be analyzed
     input = sys.argv[1:]

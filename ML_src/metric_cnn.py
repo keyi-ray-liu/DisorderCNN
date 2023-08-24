@@ -29,6 +29,7 @@ class Label():
         self.full_id = '-'.join([self.model_name, self.label_name, str(description), self.id ])
         self.model_dir = cwd + self.full_id + '.pt'
         self.para_dir = cwd + self.full_id + '.json'
+        self.train_avg_dir = cwd + self.full_id + 'y_train_avg'
 
     def get_label_name(self):
         return self.label_name
@@ -47,8 +48,19 @@ class Label():
         X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.4, random_state=42)
         X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=55)
 
+        self.set_y_avg(y_train)
         return X_train, y_train, X_val, y_val, X_test, y_test
     
+    def set_y_avg(self, y_train=None):
+
+        if os.path.exists(self.train_avg_dir):
+            self.avg_y_train = np.loadtxt(self.train_avg_dir )
+        else:
+            self.avg_y_train = np.average(y_train, axis=0)
+
+    def get_y_avg(self):
+        return self.avg_y_train
+
     def get_model_weights(self):
 
         print(self.model)
@@ -90,6 +102,9 @@ class Label():
         with open(para_dir, 'w') as f:
             json.dump(parameter, f, indent=4)
 
+        avg_dir = self.train_avg_dir
+        np.savetxt( avg_dir, self.avg_y_train)
+
 
 class Ipr(Label):
 
@@ -103,9 +118,9 @@ class Gpi(Label):
         self.metric_name = metric_name
         self.if_sort = if_sort
 
-    def set_data_dir(self, data_description='0'): 
+    def set_data_dir(self, data_description='batch-0'): 
 
-        cwd = os.getcwd() + '/batch-{}/'.format(str(data_description))
+        cwd = os.getcwd() + '/{}/'.format(str(data_description))
         if not os.path.exists(cwd):
             os.mkdir(cwd)
         
@@ -114,6 +129,23 @@ class Gpi(Label):
         
     def init_model(self):
         self.model = GPICNN()
+
+class CNNSqDis(Label):
+
+    def process_x(self):
+
+        dir = self.data_dir
+
+        disx = np.loadtxt(dir + 'disx')
+        disy = np.loadtxt(dir + 'disy')
+        
+        dim = int(np.rint(np.sqrt(disx.shape[-1])))
+
+        dis = np.zeros( (disx.shape[0], 2, dim, dim))
+        dis[:, 0, :] = np.reshape( disx, ( disx.shape[0], dim, dim))
+        dis[:, 1, :] = np.reshape( disy, ( disx.shape[0], dim, dim))
+
+        return dis
 
 
 class CNNDis(Label):
@@ -364,9 +396,9 @@ class Energy(Label):
     def get_activation(self):
         return self.activation_func
     
-    def set_data_dir(self, data_description='0'): 
+    def set_data_dir(self, data_description='batch-0'): 
 
-        cwd = os.getcwd() + '/batch-{}/'.format(str(data_description))
+        cwd = os.getcwd() + '/{}/'.format(str(data_description))
         if not os.path.exists(cwd):
             os.mkdir(cwd)
         
@@ -456,3 +488,8 @@ class GSGapXonly_MSE_Simple(Energy, CNNxOnlyDis, GSGap, MSEtorch):
 
     def init_model(self):
         self.model = Energy1DCNNSimple(inputdim = 1, outputdim = self.output, activation_func=self.activation_func)
+
+class GS2D_MSE(Energy, CNNSqDis, GSGap, MSEtorch):
+
+    def init_model(self):
+        self.model = Energy2DCNN(outputdim = self.output, activation_func=self.activation_func)

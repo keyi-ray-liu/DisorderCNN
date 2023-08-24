@@ -8,10 +8,10 @@ from cnn_utils import *
 if __name__ == '__main__':
 
 
-    batch_size = 50
-    n_epochs = 5
+    batch_size = 10
+    n_epochs = 10
 
-    lr = 0.02
+    lr = 0.07
     decay = 0.02
     momentum = 0.8
 
@@ -19,7 +19,7 @@ if __name__ == '__main__':
     # select which set of disorder parameters we want to look at. 
     # For cross comparison down in plot, enter multiple 
     # For function to work properly which_cases always need to be a list
-    data_descriptions = ['max0.4']
+    data_descriptions = ['4x4-0.3min']
     
     #label = Gpi(if_sort = 1)
     internal_label = int(sys.argv[1])
@@ -32,6 +32,7 @@ if __name__ == '__main__':
             ID = str(int(time.time()/60))
             label : Label = select_label(internal_label, ID)
             label.set_data_dir(data_description=data_description)
+            label.set_model_dir()
 
             if isinstance(label, GSGap_GSW_MSE):
                 label.set_weights(weight)
@@ -45,7 +46,7 @@ if __name__ == '__main__':
 
             trainerr, validerr = label.train_model(Train, Val, lr=lr, weight_decay = decay, momentum = momentum, n_epochs=n_epochs)
 
-            label.set_model_dir()
+            
         
             parameter = {
                 'batch_size' : batch_size,

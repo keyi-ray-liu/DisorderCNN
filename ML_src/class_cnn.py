@@ -64,32 +64,33 @@ class GPICNN(nn.Module):
 
 
 class Energy2DCNN(nn.Module):
-    def __init__(self, outputdim):
+    def __init__(self, outputdim, activation_func='ReLU'):
         super(Energy2DCNN, self).__init__()
-        # TODO initialize model layers here
-        self.cnn1 = nn.Conv2d(2, 1024, (2, 2))
+        mid = 512
+        fmid = 4 * mid
+
+        self.activation = set_activation(activation_func)
+        self.cnn1 = nn.Conv2d(2, mid, (3, 3))
         self.relu = nn.ReLU()
         self.pool = nn.MaxPool2d( (2, 2) )
         self.dropout = nn.Dropout(p=0.5)
         self.flatten = Flatten()
-        self.hidden = nn.Linear(1024 , 1024)
-        self.hidden2 = nn.Linear( 1024, 1024)
-        self.out = nn.Linear(1024, outputdim)
+        self.hidden = nn.Linear( fmid , fmid)
+        self.out = nn.Linear(fmid, outputdim)
 
     def forward(self, x):
 
         # TODO use model layers to predict the two digits
         x = self.cnn1(x) # 2x2
         x = self.relu(x)
-        x = self.pool(x) # 1x1
         x = self.flatten(x)
         x = self.hidden(x)
-        x = self.relu(x)
-        x = self.hidden2(x)
-        x = self.relu(x)
+        x = self.activation(x)
+        x = self.hidden(x)
+        x = self.activation(x)
         x = self.dropout(x)
         x = self.out(x)
-        x = self.relu(x)
+        x = self.activation(x)
 
         energy = x
         # ipr = x[:, 10:]
