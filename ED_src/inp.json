@@ -1,10 +1,11 @@
 {
-    "Lx" : 24,
-    "Ly" : 1,
-    "num_e" : 12,
+    "Lx" : 3,
+    "Ly" : 3,
+    "num_e" : [4, 4],
     "maxcase" : 1,
     "lo" : 0,
     "hi" : 20,
-    "mode" : -1,
-    "sparse" : 1
+    "mode" : 0,
+    "sparse" : 1,
+    "readM" : 0
 }
