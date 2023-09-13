@@ -88,7 +88,7 @@ def single_iteration(case, disx, disy, sites, S,  sdict, occdict, balancestate, 
     ipr = calIPR(eigv)
 
     # June 13 update: remove explicit TCD, GPI calculate, leave everything to eigv
-    if num_e > 1:
+    if sum(num_e) > 1:
 
         if mode >= 3:
             tcd = cal_TCD()
@@ -107,7 +107,7 @@ def single_iteration(case, disx, disy, sites, S,  sdict, occdict, balancestate, 
         res = np.concatenate( (dis[0], dis[1], energy, ipr))
         site_res = sites[case]
 
-        if num_e > 1:
+        if sum(num_e) > 1:
             #many_res = np.concatenate( (tcd.reshape( k * L), gpi, balance))
             many_res = balance
             #print(len(many_res))

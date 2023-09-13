@@ -31,7 +31,7 @@ def saveresults(eigvs, allres, allmany_res, site_info, para):
     for i in range(len(strs)):
         np.savetxt(strs[i], data[i], fmt='%.8f')
 
-    if num_e > 1:
+    if sum(num_e) > 1:
 
         #June 13 update, eigv only 
 
@@ -49,6 +49,4 @@ def saveresults(eigvs, allres, allmany_res, site_info, para):
 
 
     np.savetxt('sites', site_info, fmt='%i')
-
-
 

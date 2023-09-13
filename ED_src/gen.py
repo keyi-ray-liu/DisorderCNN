@@ -2,20 +2,34 @@ import numpy as np
 from collections import defaultdict
 
 def generateState(L, num_e, qe):
-    if L == num_e:
-        return [[1] * num_e]
-    if L == 0:
-        return [[]]
-    if num_e == 0:
-        return [[0] * L]
-    full =  [ [0]  + state for state in generateState(L - 1, num_e, 0)] + [ [ 1] + state for state in generateState(L - 1, num_e -1, 0)]
 
-    if not qe:
-        return full
+    def recur(L, num):
+
+        if L == num:
+            return [[1] * num]
+        if L == 0:
+            return [[]]
+        if num == 0:
+            return [[0] * L]
+        
+        cur =  [ [0]  + state for state in recur(L - 1, num)] + [ [ 1] + state for state in recur(L - 1, num -1)]
+        return cur
+
+    if len(num_e) == 1:
+
+        num_e = num_e[0]
+        full = recur(L, num_e)
+
+    elif len(num_e) == 2:
+
+        up, dn = num_e
+        full = [ ups + 2 * dns for ups in np.array(recur(L, up)) for dns in np.array(recur(L, dn))]
+
+    else:
+        raise(ValueError("invalid num_e"))
 
     for _ in range(qe):
         full = [state + [0] for state in full] + [state + [1] for state in full]
-
     return full
         
 

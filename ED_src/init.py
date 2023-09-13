@@ -1,6 +1,7 @@
 import numpy as np
 from gen import *
 import json
+import collections
 
 
 def initParameters():
@@ -14,6 +15,7 @@ def initParameters():
     sparse = int(input['sparse'])
     mode = int(input['mode'])
     maxcase = input['maxcase']
+    readM = int(input['readM'])
     Ly = int(input['Ly']) if 'Ly' in input else 1
 
     lo = input['lo']
@@ -42,7 +44,7 @@ def initParameters():
     with open('hamiltonian.json', 'r') as f:
         ham = json.load(f)
 
-    t = ham['t']
+    U = ham['U']
     int_ee = ham['int_ee']
     int_ne = ham['int_ne']
     int_range = ham['int_range']
@@ -50,24 +52,34 @@ def initParameters():
     zeta = ham['zeta']
     ex = ham['ex']
     selfnuc = ham['selfnuc']
-    alltoall = ham['alltoall']
     hopmode = ham['hopmode']
+
+    try:
+        with open('nn.json', 'r') as f:
+            nn_raw = json.load(f)
+
+            nn = collections.defaultdict(list)
+            for key in nn_raw:
+                nn[ int(key) ] = nn_raw[key]
+        
+    except FileNotFoundError:
+        raise(ValueError('NN not found!'))
 
     para = {
         'L' : L,
         'Lx': Lx,
         'Ly': Ly,
-        'num_e' : int(num_e),
-        't': t,
+        'num_e' : num_e,
         'int_ee': int_ee,
         'int_ne': int_ne,
+        'U': U,
         'int_range': int_range,
         'z': z,
         'zeta':zeta,
         'ex': ex,
         # if-include-nuc-self-int switch, 1 means include
         'selfnuc': int(selfnuc),
-        'alltoall':int(alltoall),
+        'nn' : nn,
         'tun': int(tun),
         'cou': int(cou),
         'a': float(a),
@@ -83,7 +95,8 @@ def initParameters():
         'num_site': int(dis['num_site']) if 'num_site' in dis else 0,
         'maxlen':int(dis['maxlen']) if 'maxlen' in dis else 0,
         'hopmode': int(hopmode),
-        'sparse':sparse
+        'sparse':sparse,
+        'readM': readM
     }
     
 
@@ -153,7 +166,7 @@ def initdict(S, para):
             #print(i, j)
             occdict[ i, j ] = occ
 
-        if sum( state[:L//2]) == num_e/2:
+        if sum( state[:L//2]) == sum(num_e)/2:
             balancestate[i] = 1
 
     np.savetxt('occdict', occdict, fmt='%i')

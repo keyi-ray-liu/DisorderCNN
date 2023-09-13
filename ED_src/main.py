@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
             eigv, result, many_result, site_res = result
 
-            if num_e > 1:
+            if sum(num_e)> 1:
                 allmany_res.append(many_result)
 
             eigvs.append( eigv.flatten())

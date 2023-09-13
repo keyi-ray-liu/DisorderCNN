@@ -4,7 +4,7 @@ from itertools import combinations
 
 
 def hamiltonian(s, dis, para):
-    L, t, int_ee, int_ne, z, zeta, ex, selfnuc = para['L'],  para['t'], para['int_ee'],para['int_ne'], para['z'], para['zeta'], para['ex'],  para['selfnuc']
+    L, int_ee, int_ne, z, zeta, ex, selfnuc = para['L'],  para['int_ee'],para['int_ne'], para['z'], para['zeta'], para['ex'],  para['selfnuc']
     Lx, Ly = para['Lx'], para['Ly']
 
     num_e = para['num_e']
@@ -14,11 +14,15 @@ def hamiltonian(s, dis, para):
     allnewstates = [[], []]
     allee, allne = 0, 0
     hopmode = para['hopmode']
-    alltoall = para['alltoall']
     qe_energy = para['qe_energy']
     qe = para['qe']
     qe_dis = para['qe_dis']
     dp = para['dp']
+    nn = para['nn']
+    U = para['U']
+
+
+        
 
     def checkHopping(loc):
         # set up the NN matrix
@@ -27,21 +31,9 @@ def hamiltonian(s, dis, para):
     
 
         #only hop to NN, candidates include right and up
-        if not alltoall:
-            cand = set()
+        cand = nn[loc]
 
-            # if site not on the edge
-            if loc < L - 1 and loc % Lx != Lx - 1:
-                cand.add( loc + 1)
-
-            if loc < L - Lx:
-                cand.add( loc + Lx)
-
-        #hop to all sites after
-        else:
-            cand = range(loc + 1, L)
-
-        for site in cand:
+        for site, t in cand:
 
             if s[loc] != s[site]:
 
@@ -51,12 +43,14 @@ def hamiltonian(s, dis, para):
                 xs = site % Lx
                 ys = site // Lx
 
+
                 snew = copy.copy(s)
-                snew[loc], snew[ site ] = snew[ site], snew[loc]
+                snew[loc], snew[ site ] = snew[site], snew[loc]
                 res.append(snew)
 
                 # jordan wigner string for cc operator
-                jw = (-1) ** s[ loc + 1: site].count(1)
+                seg = s[ loc + 1: site]
+                jw = (-1) ** (seg[seg >0 ].shape[0] + seg[seg == 3].shape[0])
                 if tun:
                     dx = - dis[0][loc]  -xloc + dis[0][site] + xs
                     dy = - dis[1][loc] -yloc + dis[1][site] + ys
@@ -222,7 +216,7 @@ def hamiltonian(s, dis, para):
         chain_state = s[:L]
         # add diagonal energies
 
-        qe_pot.append( qe_state.count(1) * qe_energy)
+        qe_pot.append( (qe_state[qe_state > 0].shape[0] +qe_state[qe_state ==3].shape[0])  * qe_energy)
         states.append( s)
 
         # add off-diagonal energies
@@ -243,7 +237,7 @@ def hamiltonian(s, dis, para):
                     #calculate energy
                     np_s = np.array(chain_state)
                     r_vec = np.abs( np.arange(L) - qe_dis[ind])
-                    new_qe_pot += np.sum(dp[ind] * (np_s - num_e/L) * ( r_vec / ( r_vec **3 + zeta)))
+                    new_qe_pot += np.sum(dp[ind] * (np_s - sum(num_e)/L) * ( r_vec / ( r_vec **3 + zeta)))
 
 
                 qe_pot.append( new_qe_pot)
@@ -281,6 +275,13 @@ def hamiltonian(s, dis, para):
         for j in range(len(qe_pot)):
             allnewstates[0].append(qe_pot[j])
             allnewstates[1].append(qe_state[j])
+
+    if len(num_e) == 2:
+
+        allnewstates[0].append( U * s[s==3].shape[0] )
+        allnewstates[1].append(s)
+
+    
 
     return allnewstates
 
