@@ -2,6 +2,7 @@ import numpy as np
 from gen import *
 import json
 import collections
+from hopping_gen import gen_hopping
 
 
 def initParameters():
@@ -16,13 +17,13 @@ def initParameters():
     mode = int(input['mode'])
     maxcase = input['maxcase']
     readM = int(input['readM'])
+    hop_default = int(input["hop_default"])
     Ly = int(input['Ly']) if 'Ly' in input else 1
 
     lo = input['lo']
     hi = input['hi']
 
     L = Lx * Ly
-
 
     # mode -1 is time evolution, separate
     # mode 0 is the universal x, y disorder generation, used in testing a new t, lambda combination
@@ -49,10 +50,15 @@ def initParameters():
     int_ne = ham['int_ne']
     int_range = ham['int_range']
     z = ham['z']
+    t = ham['t']
     zeta = ham['zeta']
     ex = ham['ex']
     selfnuc = ham['selfnuc']
     hopmode = ham['hopmode']
+
+    if hop_default:
+        gen_hopping(Lx, Ly, t)
+
 
     try:
         with open('nn.json', 'r') as f:
@@ -96,7 +102,7 @@ def initParameters():
         'maxlen':int(dis['maxlen']) if 'maxlen' in dis else 0,
         'hopmode': int(hopmode),
         'sparse':sparse,
-        'readM': readM
+        'readM' : readM
     }
     
 

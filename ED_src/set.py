@@ -1,8 +1,9 @@
 from collections import defaultdict
 from hamiltonian import *
 from scipy.sparse import csr_matrix, load_npz, save_npz
-from scipy.special import comb
 import os
+from utils import *
+
 
 def setMatrix(S, N, dis, sdict, para, tag=''):
 
@@ -16,14 +17,16 @@ def setMatrix(S, N, dis, sdict, para, tag=''):
 
         #print(cnt)
 
-    frac = N // 100
+    frac = N // 100 if N >= 100 else 1
     cnt = 0
+
+    sparse_M = 'M{}.npz'.format(tag)
+    dense_M = 'M{}'.format(tag)
 
     if sparse:
 
-        matrix_file = 'M{}.npz'.format(tag)
-        if os.path.exists(matrix_file) and readM:
-            M = load_npz(matrix_file)
+        if os.path.exists(sparse_M) and readM:
+            M = load_npz(sparse_M)
 
         else:
             row = []
@@ -43,13 +46,12 @@ def setMatrix(S, N, dis, sdict, para, tag=''):
                     val += [newstates[0][j]]
 
             M = csr_matrix((val, (row, col)), shape=(N, N))
-            save_npz(matrix_file, M)
+            save_npz(sparse_M, M)
 
     else:
 
-        matrix_file = 'M'
-        if os.path.exists(matrix_file) and readM:
-            M = np.loadtxt(matrix_file)
+        if os.path.exists(dense_M) and readM:
+            M = np.loadtxt(dense_M)
 
         else:
             M = np.zeros((N, N))
@@ -64,28 +66,17 @@ def setMatrix(S, N, dis, sdict, para, tag=''):
                 for j, newstate  in enumerate(newstates[1]):
                     M[i, sdict[str(newstate)]] += newstates[0][j]
 
-            np.savetxt('M', M, fmt='%.3f')
+            np.savetxt(dense_M + 'readable', M, fmt='%.3f')
+            np.savetxt(dense_M, M)
             
-            #checkdiag(M, para)
+            #\checkdiag(M, para)
             checksparce()
+
+    #if os.path.exists(sparse_M) and os.path.exists(dense_M):
+    #    check_same(sparse_M, dense_M)
     
     return M
    
-def checkdiag(M, para):
 
-    L = para['L']
-    num_e = para['num_e']
-
-    num = int(comb(L, num_e))
-    rep = int(M.shape[0] // num)
-    
-
-    for r in range(rep):
-        for c in range(rep):
-
-            block = M[ r * num : (r + 1) * num, c * num: (c + 1)*num]
-            zeros = np.count_nonzero( block - np.diag(np.diagonal(block)))
-
-            print(r, c, zeros)
 
 

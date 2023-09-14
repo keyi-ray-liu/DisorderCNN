@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.sparse import csr_matrix, load_npz
+from scipy.special import comb
 
 
 def check_symmetric(a, rtol=1e-05, atol=1e-08):
@@ -49,4 +51,29 @@ def saveresults(eigvs, allres, allmany_res, site_info, para):
 
 
     np.savetxt('sites', site_info, fmt='%i')
+
+
+def checkdiag(M, para):
+
+    L = para['L']
+    num_e = para['num_e']
+
+    num = int(comb(L, num_e))
+    rep = int(M.shape[0] // num)
+    
+
+    for r in range(rep):
+        for c in range(rep):
+
+            block = M[ r * num : (r + 1) * num, c * num: (c + 1)*num]
+            zeros = np.count_nonzero( block - np.diag(np.diagonal(block)))
+
+            print(r, c, zeros)
+
+def check_same(sparse, dense):
+
+    sparse :csr_matrix= load_npz(sparse)
+    dense = np.loadtxt(dense)
+
+    print(np.allclose(sparse.toarray(), dense))
 

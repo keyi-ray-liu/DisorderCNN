@@ -3,7 +3,7 @@
     "cou" : 1,
     "a" : 0,
     "b" : 0,
-    "readdisorder": 1,
+    "readdisorder": 0,
     "seed" : 0,
     "decay" : 0.2,
     "distype" : "uniform"

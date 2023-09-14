@@ -40,8 +40,6 @@ if __name__ == '__main__':
         #cases = 1
         cases = len(disx)
 
-        para["readM"] = 0 if cases > 1 else 1
-
         allres = []
         eigvs = []
         allmany_res = []

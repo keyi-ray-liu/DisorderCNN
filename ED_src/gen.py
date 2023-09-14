@@ -18,7 +18,7 @@ def generateState(L, num_e, qe):
     if len(num_e) == 1:
 
         num_e = num_e[0]
-        full = recur(L, num_e)
+        full = [ np.array(s) for s in recur(L, num_e)]
 
     elif len(num_e) == 2:
 
@@ -30,6 +30,8 @@ def generateState(L, num_e, qe):
 
     for _ in range(qe):
         full = [state + [0] for state in full] + [state + [1] for state in full]
+
+    print(len(full))
     return full
         
 

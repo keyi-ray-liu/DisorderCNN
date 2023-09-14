@@ -1,10 +1,7 @@
 import json
 import collections
 
-def work():
-
-    Lx = 3
-    Ly = 3
+def gen_hopping(Lx, Ly, t):
 
     L = Lx * Ly
     d = collections.defaultdict(list)
@@ -13,10 +10,10 @@ def work():
 
         # if site not on the edge
         if s < L - 1 and s % Lx != Lx - 1:
-            d[s].append( [s + 1, 1.0])
+            d[s].append( [s + 1, t])
 
         if s < L - Lx:
-            d[s].append( [s + Lx, 1.0])
+            d[s].append( [s + Lx, t])
 
     
     with open('nn.json', 'w') as f:
@@ -29,8 +26,8 @@ def work():
         for key in nn_raw:
             nn[ int(key) ] = nn_raw[key]
 
-    print(nn)
+    #print(nn)
 
 if __name__ == '__main__':
 
-    work()
+    gen_hopping(4, 4, -0.001)

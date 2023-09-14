@@ -50,7 +50,7 @@ def hamiltonian(s, dis, para):
 
                 # jordan wigner string for cc operator
                 seg = s[ loc + 1: site]
-                jw = (-1) ** (seg[seg >0 ].shape[0] + seg[seg == 3].shape[0])
+                jw = (-1) ** (seg[seg >0 ].shape[0] - seg[seg == 3].shape[0])
                 if tun:
                     dx = - dis[0][loc]  -xloc + dis[0][site] + xs
                     dy = - dis[1][loc] -yloc + dis[1][site] + ys
@@ -63,9 +63,9 @@ def hamiltonian(s, dis, para):
                     else:
                         factor = np.sin( dr )
                     #print(factor)
-                    ts.append( -t * factor * jw)
+                    ts.append( t * factor * jw)
                 else:
-                    ts.append(- t * jw)
+                    ts.append( t * jw)
                 
 
         # 2D lattice, hop down
@@ -256,11 +256,19 @@ def hamiltonian(s, dis, para):
             allnewstates[1].append(newstate[i])
 
 
-        # the ee interaction part, the 0.5 is for the double counting of sites. 
-        allee += ee(loc) 
+    # the ee interaction part, the 0.5 is for the double counting of sites.
+    #
+        
+    if int_ee != 0:
+
+        for loc in range(L):
+            allee += ee(loc) 
+    
+    if int_ne != 0:
         # the ne interaction part
-        allne += ne(loc)
-        #print(ne(row, col))
+
+        for loc in range(L):
+            allne += ne(loc)
         
 
     #print(allee, allne)

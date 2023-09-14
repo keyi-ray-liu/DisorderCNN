@@ -17,7 +17,7 @@ def solve(M, para):
         k = ranges[-1] - ranges[0] + 1
 
         #print('num of eigenvalues: {}'.format(k))
-        w, v = eigsh(M, k)
+        w, v = eigsh(M, k, which='SA')
 
     else:
 
